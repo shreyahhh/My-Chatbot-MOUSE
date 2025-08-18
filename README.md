@@ -1,30 +1,297 @@
-# Hasura GraphQL mutation
+# Hasura GraphQL Chat Application
 
-*Automatically synced with your [v0.app](https://v0.app) deployments*
+A modern, real-time chat application built with Next.js, Hasura GraphQL, and n8n automation workflows. This application demonstrates a complete full-stack implementation with authentication, real-time messaging, and AI-powered responses.
 
-[![Deployed on Vercel](https://img.shields.io/badge/Deployed%20on-Vercel-black?style=for-the-badge&logo=vercel)](https://vercel.com/shreyyaaa369-gmailcoms-projects/v0-hasura-graph-ql-mutation)
-[![Built with v0](https://img.shields.io/badge/Built%20with-v0.app-black?style=for-the-badge)](https://v0.app/chat/projects/JoS3BVFhSzw)
+## 🏗️ Architecture Overview
 
-## Overview
+\`\`\`
+┌─────────────────┐    ┌─────────────────┐    ┌─────────────────┐    ┌─────────────────┐
+│   Next.js App   │───▶│  Hasura GraphQL │───▶│   n8n Webhook   │───▶│   AI Service    │
+│   (Frontend)    │    │   (Backend)     │    │  (Automation)   │    │  (OpenAI/etc)   │
+└─────────────────┘    └─────────────────┘    └─────────────────┘    └─────────────────┘
+         │                       │
+         │                       ▼
+         │              ┌─────────────────┐
+         └─────────────▶│  NHost Database │
+                        │  (PostgreSQL)   │
+                        └─────────────────┘
+\`\`\`
 
-This repository will stay in sync with your deployed chats on [v0.app](https://v0.app).
-Any changes you make to your deployed app will be automatically pushed to this repository from [v0.app](https://v0.app).
+## 🚀 Features
 
-## Deployment
+### Core Functionality
+- **Real-time Chat Interface**: Modern, responsive chat UI with message bubbles
+- **Auto-naming Chats**: Automatically names chats based on the first message
+- **Message History**: Persistent chat history with PostgreSQL storage
+- **Authentication System**: Simple email/password authentication with local storage
+- **Markdown Support**: Rich text formatting with **bold** and *italic* support
+- **Typing Indicators**: Visual feedback during message processing
+- **Error Handling**: Comprehensive error handling with user-friendly messages
 
-Your project is live at:
+### Technical Features
+- **GraphQL Integration**: Efficient data fetching with Hasura GraphQL Engine
+- **Webhook Automation**: n8n workflows for AI response processing
+- **Responsive Design**: Mobile-first design with Tailwind CSS
+- **TypeScript**: Full type safety throughout the application
+- **Component Architecture**: Modular, reusable React components
 
-**[https://vercel.com/shreyyaaa369-gmailcoms-projects/v0-hasura-graph-ql-mutation](https://vercel.com/shreyyaaa369-gmailcoms-projects/v0-hasura-graph-ql-mutation)**
+## 🛠️ Technology Stack
 
-## Build your app
+### Frontend
+- **Next.js 14**: React framework with App Router
+- **TypeScript**: Type-safe JavaScript
+- **Tailwind CSS**: Utility-first CSS framework
+- **shadcn/ui**: Modern UI component library
+- **Lucide React**: Beautiful icon library
 
-Continue building your app on:
+### Backend Services
+- **Hasura GraphQL Engine**: Real-time GraphQL API
+- **NHost**: Backend-as-a-Service platform
+- **PostgreSQL**: Relational database
+- **n8n**: Workflow automation platform
 
-**[https://v0.app/chat/projects/JoS3BVFhSzw](https://v0.app/chat/projects/JoS3BVFhSzw)**
+### AI Integration
+- **OpenAI API**: AI-powered chat responses
+- **Custom Webhooks**: Integration layer between Hasura and AI services
 
-## How It Works
+## 📋 Prerequisites
 
-1. Create and modify your project using [v0.app](https://v0.app)
-2. Deploy your chats from the v0 interface
-3. Changes are automatically pushed to this repository
-4. Vercel deploys the latest version from this repository
+Before running this application, ensure you have:
+
+- Node.js 18+ installed
+- Access to the configured services:
+  - NHost project with PostgreSQL database
+  - Hasura GraphQL Engine instance
+  - n8n workflow automation setup
+  - AI service API keys (OpenAI, etc.)
+
+## 🔧 Configuration
+
+### Environment Variables
+
+The application uses the following configuration (currently hardcoded in `lib/constants.ts`):
+
+\`\`\`typescript
+export const HASURA_CONFIG = {
+  ENDPOINT: "https://bnqvukehntkdxvfennwr.hasura.ap-south-1.nhost.run/v1/graphql",
+  ADMIN_SECRET: "your-hasura-admin-secret",
+  AUTH_TOKEN: "your-auth-token",
+  USER_ID: "your-user-id",
+}
+\`\`\`
+
+### Database Schema
+
+The application requires the following PostgreSQL tables:
+
+#### `chats` table
+\`\`\`sql
+CREATE TABLE chats (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  title TEXT NOT NULL,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+\`\`\`
+
+#### `messages` table
+\`\`\`sql
+CREATE TABLE messages (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  chat_id UUID REFERENCES chats(id) ON DELETE CASCADE,
+  content TEXT NOT NULL,
+  role TEXT NOT NULL CHECK (role IN ('user', 'assistant')),
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+\`\`\`
+
+### Hasura Configuration
+
+#### GraphQL Queries and Mutations
+
+The application uses these GraphQL operations:
+
+**Queries:**
+- `GetChats`: Retrieves all chats ordered by creation date
+- `GetMessages`: Fetches messages for a specific chat
+
+**Mutations:**
+- `CreateChat`: Creates a new chat with a title
+- `UpdateChatTitle`: Updates an existing chat's title
+- `SendMessage`: Triggers the AI response workflow (custom action)
+
+#### Hasura Actions
+
+The `sendMessage` mutation is configured as a Hasura Action that calls the n8n webhook:
+
+\`\`\`yaml
+# Action Definition
+name: sendMessage
+definition:
+  kind: synchronous
+  handler: https://jolly.app.n8n.cloud/webhook/129279ea-32e4-45f9-932a-40536ef89b95
+  forward_client_headers: true
+\`\`\`
+
+### n8n Workflow Configuration
+
+The n8n workflow should:
+
+1. **Receive webhook payload** with `chat_id` and `message`
+2. **Process the message** through your AI service
+3. **Store the response** in the database
+4. **Return the formatted response** to Hasura
+
+Expected webhook response format:
+\`\`\`json
+{
+  "id": "message-uuid",
+  "chat_id": "chat-uuid",
+  "content": "AI response content",
+  "role": "assistant",
+  "created_at": "2024-01-01T00:00:00.000Z"
+}
+\`\`\`
+
+## 🚀 Getting Started
+
+### Installation
+
+1. **Clone the repository**
+   \`\`\`bash
+   git clone <repository-url>
+   cd hasura-chat-app
+   \`\`\`
+
+2. **Install dependencies**
+   \`\`\`bash
+   npm install
+   \`\`\`
+
+3. **Configure the application**
+   - Update `lib/constants.ts` with your service endpoints
+   - Ensure your database schema is set up
+   - Configure Hasura actions and permissions
+
+4. **Run the development server**
+   \`\`\`bash
+   npm run dev
+   \`\`\`
+
+5. **Open the application**
+   Navigate to `http://localhost:3000`
+
+### Production Deployment
+
+1. **Build the application**
+   \`\`\`bash
+   npm run build
+   \`\`\`
+
+2. **Deploy to your preferred platform**
+   - Vercel (recommended for Next.js)
+   - Netlify
+   - Docker container
+   - Traditional hosting
+
+## 📁 Project Structure
+
+\`\`\`
+├── app/
+│   ├── globals.css          # Global styles and Tailwind configuration
+│   ├── layout.tsx           # Root layout component
+│   └── page.tsx             # Main chat application
+├── components/
+│   ├── chat/
+│   │   ├── message-bubble.tsx    # Individual message component
+│   │   └── typing-indicator.tsx  # Loading animation component
+│   └── ui/                  # shadcn/ui components
+├── lib/
+│   ├── constants.ts         # Application configuration
+│   ├── graphql.ts          # GraphQL queries and client
+│   ├── types.ts            # TypeScript type definitions
+│   └── utils/
+│       ├── chat.ts         # Chat-related utility functions
+│       └── markdown.ts     # Markdown parsing utilities
+└── README.md
+\`\`\`
+
+## 🔍 Key Components
+
+### Main Application (`app/page.tsx`)
+- Handles authentication state
+- Manages chat and message state
+- Coordinates GraphQL operations
+- Renders the main chat interface
+
+### Message Bubble (`components/chat/message-bubble.tsx`)
+- Displays individual messages
+- Handles markdown formatting
+- Shows timestamps and user avatars
+
+### GraphQL Client (`lib/graphql.ts`)
+- Centralized GraphQL request handling
+- Type-safe query and mutation definitions
+- Error handling and authentication headers
+
+### Utility Functions (`lib/utils/`)
+- Chat title generation and validation
+- Markdown parsing for rich text
+- Reusable helper functions
+
+## 🐛 Troubleshooting
+
+### Common Issues
+
+1. **Webhook returning empty responses**
+   - Check n8n workflow is active and properly configured
+   - Verify webhook URL is correct in Hasura actions
+   - Ensure AI service API keys are valid
+
+2. **GraphQL permission errors**
+   - Verify Hasura permissions for user role
+   - Check authentication headers are correct
+   - Ensure database relationships are properly configured
+
+3. **Messages not displaying**
+   - Check database schema matches expected structure
+   - Verify GraphQL queries return expected data format
+   - Check browser console for JavaScript errors
+
+### Debug Mode
+
+Enable debug logging by checking browser console for `[v0]` prefixed messages that show:
+- GraphQL request/response details
+- Authentication status
+- Error information
+
+## 🤝 Contributing
+
+1. Fork the repository
+2. Create a feature branch (`git checkout -b feature/amazing-feature`)
+3. Commit your changes (`git commit -m 'Add amazing feature'`)
+4. Push to the branch (`git push origin feature/amazing-feature`)
+5. Open a Pull Request
+
+## 📄 License
+
+This project is licensed under the MIT License - see the LICENSE file for details.
+
+## 🙏 Acknowledgments
+
+- [Hasura](https://hasura.io/) for the GraphQL engine
+- [NHost](https://nhost.io/) for backend services
+- [n8n](https://n8n.io/) for workflow automation
+- [shadcn/ui](https://ui.shadcn.com/) for the component library
+- [Vercel](https://vercel.com/) for hosting and deployment
+
+## 📞 Support
+
+For support and questions:
+- Check the troubleshooting section above
+- Review Hasura and n8n documentation
+- Open an issue in the repository
+- Contact the development team
+
+---
+
+Built with ❤️ using modern web technologies
