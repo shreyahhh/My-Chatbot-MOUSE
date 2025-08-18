@@ -1,10 +1,12 @@
-# Hasura GraphQL Chat Application
+
+# mouse: Hasura GraphQL Chat Application
 
 A modern, real-time chat application built with Next.js, Hasura GraphQL, and n8n automation workflows. This application demonstrates a complete full-stack implementation with authentication, real-time messaging, and AI-powered responses.
 
+
 ## 🏗️ Architecture Overview
 
-\`\`\`
+```
 ┌─────────────────┐    ┌─────────────────┐    ┌─────────────────┐    ┌─────────────────┐
 │   Next.js App   │───▶│  Hasura GraphQL │───▶│   n8n Webhook   │───▶│   AI Service    │
 │   (Frontend)    │    │   (Backend)     │    │  (Automation)   │    │  (OpenAI/etc)   │
@@ -15,7 +17,7 @@ A modern, real-time chat application built with Next.js, Hasura GraphQL, and n8n
          └─────────────▶│  NHost Database │
                         │  (PostgreSQL)   │
                         └─────────────────┘
-\`\`\`
+```
 
 ## 🚀 Features
 
@@ -71,38 +73,46 @@ Before running this application, ensure you have:
 
 The application uses the following configuration (currently hardcoded in `lib/constants.ts`):
 
-\`\`\`typescript
+```typescript
 export const HASURA_CONFIG = {
-  ENDPOINT: "https://bnqvukehntkdxvfennwr.hasura.ap-south-1.nhost.run/v1/graphql",
-  ADMIN_SECRET: "your-hasura-admin-secret",
-  AUTH_TOKEN: "your-auth-token",
-  USER_ID: "your-user-id",
+   ENDPOINT: "https://bnqvukehntkdxvfennwr.hasura.ap-south-1.nhost.run/v1/graphql",
+   ADMIN_SECRET: "your-hasura-admin-secret",
+   AUTH_TOKEN: "your-auth-token",
+   USER_ID: "your-user-id",
 }
-\`\`\`
+```
 
 ### Database Schema
 
 The application requires the following PostgreSQL tables:
 
 #### `chats` table
-\`\`\`sql
+```sql
 CREATE TABLE chats (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  title TEXT NOT NULL,
-  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+   user_id UUID REFERENCES users(id),
+   title TEXT NOT NULL,
+   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
-\`\`\`
+-- Primary Key: chats_pkey (id)
+-- Foreign Key: user_id → users.id (chats_user_id_fkey)
+-- You may add a unique key or additional indexes as needed
+```
 
 #### `messages` table
-\`\`\`sql
+```sql
 CREATE TABLE messages (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  chat_id UUID REFERENCES chats(id) ON DELETE CASCADE,
-  content TEXT NOT NULL,
-  role TEXT NOT NULL CHECK (role IN ('user', 'assistant')),
-  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+   chat_id UUID REFERENCES chats(id) ON DELETE CASCADE,
+   content TEXT NOT NULL,
+   role TEXT NOT NULL,
+   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
-\`\`\`
+-- Primary Key: messages_pkey (id)
+-- Foreign Key: chat_id → chats.id (messages_chat_id_fkey)
+-- Index: CREATE INDEX ON messages(chat_id);
+-- Trigger: notify_hasura_user_message_trigger AFTER INSERT ON messages
+```
 
 ### Hasura Configuration
 
@@ -123,14 +133,14 @@ The application uses these GraphQL operations:
 
 The `sendMessage` mutation is configured as a Hasura Action that calls the n8n webhook:
 
-\`\`\`yaml
+```yaml
 # Action Definition
 name: sendMessage
 definition:
-  kind: synchronous
-  handler: https://jolly.app.n8n.cloud/webhook/129279ea-32e4-45f9-932a-40536ef89b95
-  forward_client_headers: true
-\`\`\`
+   kind: synchronous
+   handler: https://jolly.app.n8n.cloud/webhook/129279ea-32e4-45f9-932a-40536ef89b95
+   forward_client_headers: true
+```
 
 ### n8n Workflow Configuration
 
@@ -142,30 +152,30 @@ The n8n workflow should:
 4. **Return the formatted response** to Hasura
 
 Expected webhook response format:
-\`\`\`json
+```json
 {
-  "id": "message-uuid",
-  "chat_id": "chat-uuid",
-  "content": "AI response content",
-  "role": "assistant",
-  "created_at": "2024-01-01T00:00:00.000Z"
+   "id": "message-uuid",
+   "chat_id": "chat-uuid",
+   "content": "AI response content",
+   "role": "assistant",
+   "created_at": "2024-01-01T00:00:00.000Z"
 }
-\`\`\`
+```
 
 ## 🚀 Getting Started
 
 ### Installation
 
 1. **Clone the repository**
-   \`\`\`bash
+   ```bash
    git clone <repository-url>
-   cd hasura-chat-app
-   \`\`\`
+   cd mouse
+   ```
 
 2. **Install dependencies**
-   \`\`\`bash
+   ```bash
    npm install
-   \`\`\`
+   ```
 
 3. **Configure the application**
    - Update `lib/constants.ts` with your service endpoints
@@ -173,9 +183,9 @@ Expected webhook response format:
    - Configure Hasura actions and permissions
 
 4. **Run the development server**
-   \`\`\`bash
+   ```bash
    npm run dev
-   \`\`\`
+   ```
 
 5. **Open the application**
    Navigate to `http://localhost:3000`
@@ -183,9 +193,9 @@ Expected webhook response format:
 ### Production Deployment
 
 1. **Build the application**
-   \`\`\`bash
+   ```bash
    npm run build
-   \`\`\`
+   ```
 
 2. **Deploy to your preferred platform**
    - Vercel (recommended for Next.js)
@@ -195,7 +205,7 @@ Expected webhook response format:
 
 ## 📁 Project Structure
 
-\`\`\`
+```
 ├── app/
 │   ├── globals.css          # Global styles and Tailwind configuration
 │   ├── layout.tsx           # Root layout component
@@ -207,13 +217,13 @@ Expected webhook response format:
 │   └── ui/                  # shadcn/ui components
 ├── lib/
 │   ├── constants.ts         # Application configuration
-│   ├── graphql.ts          # GraphQL queries and client
-│   ├── types.ts            # TypeScript type definitions
+│   ├── graphql.ts           # GraphQL queries and client
+│   ├── types.ts             # TypeScript type definitions
 │   └── utils/
-│       ├── chat.ts         # Chat-related utility functions
-│       └── markdown.ts     # Markdown parsing utilities
+│       ├── chat.ts          # Chat-related utility functions
+│       └── markdown.ts      # Markdown parsing utilities
 └── README.md
-\`\`\`
+```
 
 ## 🔍 Key Components
 
@@ -264,7 +274,7 @@ Enable debug logging by checking browser console for `[v0]` prefixed messages th
 - Authentication status
 - Error information
 
-## 🤝 Contributing
+## Contributing
 
 1. Fork the repository
 2. Create a feature branch (`git checkout -b feature/amazing-feature`)
@@ -272,11 +282,7 @@ Enable debug logging by checking browser console for `[v0]` prefixed messages th
 4. Push to the branch (`git push origin feature/amazing-feature`)
 5. Open a Pull Request
 
-## 📄 License
-
-This project is licensed under the MIT License - see the LICENSE file for details.
-
-## 🙏 Acknowledgments
+## Acknowledgments
 
 - [Hasura](https://hasura.io/) for the GraphQL engine
 - [NHost](https://nhost.io/) for backend services
@@ -284,14 +290,6 @@ This project is licensed under the MIT License - see the LICENSE file for detail
 - [shadcn/ui](https://ui.shadcn.com/) for the component library
 - [Vercel](https://vercel.com/) for hosting and deployment
 
-## 📞 Support
-
-For support and questions:
-- Check the troubleshooting section above
-- Review Hasura and n8n documentation
-- Open an issue in the repository
-- Contact the development team
 
 ---
 
-Built with ❤️ using modern web technologies
