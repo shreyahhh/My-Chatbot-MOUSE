@@ -300,6 +300,10 @@ export default function ChatApp() {
                   />
                 </div>
               )}
+              <div className="mb-8 text-center">
+                <h1 className="text-3xl font-bold tracking-tight text-primary">mouse</h1>
+                <p className="text-muted-foreground text-sm mt-2">Welcome to mouse. Please log in to continue.</p>
+              </div>
               <div>
                 <label className="text-sm font-medium">Email</label>
                 <Input
