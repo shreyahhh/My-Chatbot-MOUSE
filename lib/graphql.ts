@@ -1,18 +1,17 @@
-import { HASURA_CONFIG } from "./constants"
+import { nhost } from "./nhost"
 import type { GraphQLResponse } from "./types"
 
 /**
  * Makes a GraphQL request to Hasura with proper authentication headers
  */
 export const makeGraphQLRequest = async <T = any>(query: string, variables: Record<string, any> = {}): Promise<T> => {
-  const response = await fetch(HASURA_CONFIG.ENDPOINT, {
+  const token = nhost.auth.getAccessToken()
+  
+  const response = await fetch(nhost.graphql.getUrl(), {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
-      "x-hasura-admin-secret": HASURA_CONFIG.ADMIN_SECRET,
-      authorization: `Bearer ${HASURA_CONFIG.AUTH_TOKEN}`,
-      "X-Hasura-User-Id": HASURA_CONFIG.USER_ID,
-      "X-Hasura-Role": "user",
+      ...(token && { Authorization: `Bearer ${token}` }),
     },
     body: JSON.stringify({
       query,
@@ -27,7 +26,7 @@ export const makeGraphQLRequest = async <T = any>(query: string, variables: Reco
   return result.data!
 }
 
-// GraphQL Queries and Mutations
+// GraphQL Queries and Mutations (using Row-Level Security)
 export const QUERIES = {
   GET_CHATS: `
     query GetChats {
@@ -35,6 +34,7 @@ export const QUERIES = {
         id
         title
         created_at
+        user_id
       }
     }
   `,
@@ -61,6 +61,7 @@ export const MUTATIONS = {
         id
         title
         created_at
+        user_id
       }
     }
   `,

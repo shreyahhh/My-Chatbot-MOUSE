@@ -1,15 +1,66 @@
 
-# mouse: Hasura GraphQL Chat Application
+# mouse: NHost + Hasura GraphQL Chat Application
 
-A modern, real-time chat application built with Next.js, Hasura GraphQL, and n8n automation workflows. This application demonstrates a complete full-stack implementation with authentication, real-time messaging, and AI-powered responses.
+A modern, secure multi-user chat application built with N#### `messages` table
+```sql
+CREATE TABLE messages (
+   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+   chat_id UUID REFERENCES chats(id) ON DELETE CASCADE,
+   user_id UUID REFERENCES auth.users(id),
+   content TEXT NOT NULL,
+   role TEXT NOT NULL CHECK (role IN ('user', 'assistant')),
+   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+-- Primary Key: messages_pkey (id)
+-- Foreign Key: chat_id → chats.id (messages_chat_id_fkey)
+-- Foreign Key: user_id → auth.users.id (messages_user_id_fkey)
+-- Index: CREATE INDEX ON messages(chat_id);
+-- Index: CREATE INDEX ON messages(user_id);
+-- Trigger: notify_hasura_user_message_trigger AFTER INSERT ON messages
+```
 
+### Row-Level Security (RLS) Setup
+
+To ensure users only see their own data, configure RLS policies:
+
+#### For `chats` table:
+```sql
+-- Enable RLS
+ALTER TABLE chats ENABLE ROW LEVEL SECURITY;
+
+-- Policy for users to see only their chats
+CREATE POLICY "Users can view own chats" ON chats
+   FOR SELECT USING (user_id = auth.uid());
+
+-- Policy for users to create their own chats
+CREATE POLICY "Users can create own chats" ON chats
+   FOR INSERT WITH CHECK (user_id = auth.uid());
+
+-- Policy for users to update their own chats
+CREATE POLICY "Users can update own chats" ON chats
+   FOR UPDATE USING (user_id = auth.uid());
+```
+
+#### For `messages` table:
+```sql
+-- Enable RLS
+ALTER TABLE messages ENABLE ROW LEVEL SECURITY;
+
+-- Policy for users to see only their messages
+CREATE POLICY "Users can view own messages" ON messages
+   FOR SELECT USING (user_id = auth.uid());
+
+-- Policy for users to create their own messages
+CREATE POLICY "Users can create own messages" ON messages
+   FOR INSERT WITH CHECK (user_id = auth.uid());
+```authentication, Hasura GraphQL, and n8n automation workflows. This application demonstrates a complete full-stack implementation with Row-Level Security, real-time messaging, and AI-powered responses.
 
 ## 🏗️ Architecture Overview
 
 ```
 ┌─────────────────┐    ┌─────────────────┐    ┌─────────────────┐    ┌─────────────────┐
-│   Next.js App   │───▶│  Hasura GraphQL │───▶│   n8n Webhook   │───▶│   AI Service    │
-│   (Frontend)    │    │   (Backend)     │    │  (Automation)   │    │  (OpenAI/etc)   │
+│   Next.js App   │───▶│  NHost Auth +   │───▶│   n8n Webhook   │───▶│   AI Service    │
+│   (Frontend)    │    │  Hasura GraphQL │    │  (Automation)   │    │  (OpenAI/etc)   │
 └─────────────────┘    └─────────────────┘    └─────────────────┘    └─────────────────┘
          │                       │
          │                       ▼
@@ -22,13 +73,20 @@ A modern, real-time chat application built with Next.js, Hasura GraphQL, and n8n
 ## 🚀 Features
 
 ### Core Functionality
+- **Multi-User Authentication**: Secure user registration and login with email verification
+- **Row-Level Security**: Each user only sees their own chats and messages
 - **Real-time Chat Interface**: Modern, responsive chat UI with message bubbles
 - **Auto-naming Chats**: Automatically names chats based on the first message
 - **Message History**: Persistent chat history with PostgreSQL storage
-- **Authentication System**: Simple email/password authentication with local storage
 - **Markdown Support**: Rich text formatting with **bold** and *italic* support
 - **Typing Indicators**: Visual feedback during message processing
 - **Error Handling**: Comprehensive error handling with user-friendly messages
+
+### Security Features
+- **JWT Authentication**: Secure token-based authentication via NHost
+- **Email Verification**: Users must verify their email before accessing the app
+- **Environment Variables**: All sensitive data stored in .env.local
+- **Row-Level Security**: Database-level security ensuring data isolation
 
 ### Technical Features
 - **GraphQL Integration**: Efficient data fetching with Hasura GraphQL Engine
@@ -45,10 +103,11 @@ A modern, real-time chat application built with Next.js, Hasura GraphQL, and n8n
 - **Tailwind CSS**: Utility-first CSS framework
 - **shadcn/ui**: Modern UI component library
 - **Lucide React**: Beautiful icon library
+- **@nhost/react**: NHost React integration
 
 ### Backend Services
-- **Hasura GraphQL Engine**: Real-time GraphQL API
-- **NHost**: Backend-as-a-Service platform
+- **NHost**: Backend-as-a-Service with authentication
+- **Hasura GraphQL Engine**: Real-time GraphQL API with RLS
 - **PostgreSQL**: Relational database
 - **n8n**: Workflow automation platform
 
@@ -61,9 +120,10 @@ A modern, real-time chat application built with Next.js, Hasura GraphQL, and n8n
 Before running this application, ensure you have:
 
 - Node.js 18+ installed
+- NHost account and project setup
 - Access to the configured services:
   - NHost project with PostgreSQL database
-  - Hasura GraphQL Engine instance
+  - Hasura GraphQL Engine instance (via NHost)
   - n8n workflow automation setup
   - AI service API keys (OpenAI, etc.)
 
@@ -71,16 +131,19 @@ Before running this application, ensure you have:
 
 ### Environment Variables
 
-The application uses the following configuration (currently hardcoded in `lib/constants.ts`):
+Create a `.env.local` file with the following variables:
 
-```typescript
-export const HASURA_CONFIG = {
-   ENDPOINT: "https://bnqvukehntkdxvfennwr.hasura.ap-south-1.nhost.run/v1/graphql",
-   ADMIN_SECRET: "your-hasura-admin-secret",
-   AUTH_TOKEN: "your-auth-token",
-   USER_ID: "your-user-id",
-}
+```bash
+NEXT_PUBLIC_NHOST_SUBDOMAIN=your-nhost-subdomain
+NEXT_PUBLIC_NHOST_REGION=your-nhost-region
 ```
+
+### NHost Setup
+
+1. Create a new NHost project
+2. Note your subdomain and region
+3. Configure your database schema (see below)
+4. Set up Hasura Row-Level Security permissions
 
 ### Database Schema
 
@@ -90,13 +153,12 @@ The application requires the following PostgreSQL tables:
 ```sql
 CREATE TABLE chats (
    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-   user_id UUID REFERENCES users(id),
+   user_id UUID REFERENCES auth.users(id),
    title TEXT NOT NULL,
    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 -- Primary Key: chats_pkey (id)
--- Foreign Key: user_id → users.id (chats_user_id_fkey)
--- You may add a unique key or additional indexes as needed
+-- Foreign Key: user_id → auth.users.id (chats_user_id_fkey)
 ```
 
 #### `messages` table
@@ -174,18 +236,149 @@ Expected webhook response format:
 
 2. **Install dependencies**
    ```bash
-   npm install
+   pnpm install
    ```
 
-3. **Configure the application**
-   - Update `lib/constants.ts` with your service endpoints
-   - Ensure your database schema is set up
-   - Configure Hasura actions and permissions
-
-4. **Run the development server**
+3. **Configure environment variables**
+   Create a `.env.local` file:
    ```bash
-   npm run dev
+   NEXT_PUBLIC_NHOST_SUBDOMAIN=your-nhost-subdomain
+   NEXT_PUBLIC_NHOST_REGION=your-nhost-region
    ```
+
+4. **Set up NHost project**
+   - Create a new project at [nhost.io](https://nhost.io)
+   - Configure database schema (see above)
+   - Set up Row-Level Security policies
+   - Configure Hasura actions for AI integration
+
+5. **Run the development server**
+   ```bash
+   pnpm dev
+   ```
+
+6. **Access the application**
+   Open [http://localhost:3000](http://localhost:3000) in your browser
+
+### First Time Setup
+
+1. **Create an account** using the signup form
+2. **Verify your email** (check your inbox for verification link)
+3. **Login** and start chatting!
+
+### Testing Authentication
+
+To test the multi-user functionality:
+1. Create multiple accounts with different email addresses
+2. Login with each account in different browser sessions
+3. Verify that each user only sees their own chats and messages
+
+## 🚀 Deployment
+
+### Netlify Deployment
+
+1. **Build the application**
+   ```bash
+   pnpm build
+   ```
+
+2. **Deploy to Netlify**
+   - Connect your GitHub repository to Netlify
+   - Set the build command: `pnpm build`
+   - Set the publish directory: `.next`
+   - Add environment variables in Netlify dashboard:
+     - `NEXT_PUBLIC_NHOST_SUBDOMAIN`
+     - `NEXT_PUBLIC_NHOST_REGION`
+
+3. **Configure Next.js for Netlify**
+   Install the Netlify adapter:
+   ```bash
+   pnpm add @netlify/plugin-nextjs
+   ```
+
+### Environment Variables for Production
+
+Make sure to add these environment variables in your deployment platform:
+
+```bash
+# Required for NHost authentication
+NEXT_PUBLIC_NHOST_SUBDOMAIN=your-production-subdomain
+NEXT_PUBLIC_NHOST_REGION=your-production-region
+```
+
+## 🔒 Security Features
+
+- **JWT Authentication**: Secure token-based authentication
+- **Email Verification**: Required for account activation
+- **Row-Level Security**: Database-level access control
+- **Environment Variables**: Sensitive data protection
+- **HTTPS Enforcement**: Secure data transmission
+
+## 🛠️ Development
+
+### Project Structure
+
+```
+mouse/
+├── app/                  # Next.js App Router
+│   ├── layout.tsx       # Root layout with NHost provider
+│   ├── page.tsx         # Main chat application
+│   └── globals.css      # Global styles
+├── components/          # Reusable components
+│   ├── providers/       # Context providers
+│   ├── chat/           # Chat-specific components
+│   └── ui/             # shadcn/ui components
+├── lib/                # Utilities and configuration
+│   ├── nhost.ts        # NHost client configuration
+│   ├── graphql.ts      # GraphQL queries and client
+│   ├── constants.ts    # Application constants
+│   ├── types.ts        # TypeScript type definitions
+│   └── utils/          # Utility functions
+└── styles/             # Styling files
+```
+
+### Key Components
+
+- **Authentication**: NHost React hooks for auth state management
+- **GraphQL Client**: Custom client with JWT token injection
+- **Chat Interface**: Real-time messaging with optimistic updates
+- **Row-Level Security**: Ensures data isolation between users
+
+## 📱 Usage
+
+1. **Registration**: New users sign up with email and password
+2. **Email Verification**: Users must verify their email to access the app
+3. **Chat Creation**: Chats are automatically created when sending first message
+4. **AI Responses**: Messages are processed through n8n workflows
+5. **History**: All chats and messages are persisted per user
+
+## 🐛 Troubleshooting
+
+### Common Issues
+
+1. **Build Failures**: Ensure all environment variables are set
+2. **Authentication Errors**: Check NHost project configuration
+3. **Database Issues**: Verify RLS policies are correctly configured
+4. **n8n Integration**: Confirm webhook URLs and authentication
+
+### Debugging Tips
+
+- Check browser console for authentication errors
+- Verify NHost dashboard for user registration issues
+- Test GraphQL queries in Hasura console
+- Ensure environment variables are correctly set
+
+## 🤝 Contributing
+
+1. Fork the repository
+2. Create a feature branch
+3. Make your changes
+4. Add tests if applicable
+5. Submit a pull request
+
+## 📄 License
+
+This project is licensed under the MIT License.
 
 5. **Open the application**
    Navigate to `http://localhost:3000`
