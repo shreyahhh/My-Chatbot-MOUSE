@@ -198,13 +198,21 @@ export default function ChatApp() {
 
       let errorMessage = "Sorry, there was an error sending your message. Please try again."
 
-      if (error.message.includes("webhook") || error.message.includes("invalid JSON")) {
-        errorMessage =
-          "The AI service is temporarily unavailable due to a backend configuration issue. The message processing webhook is not responding properly. Please try again in a few minutes or contact support."
-      } else if (error.message.includes("network") || error.message.includes("fetch")) {
-        errorMessage = "Network connection issue. Please check your internet connection and try again."
-      } else if (error.message.includes("timeout")) {
-        errorMessage = "The request timed out. Please try again with a shorter message."
+      if (
+        typeof error === "object" &&
+        error !== null &&
+        "message" in error &&
+        typeof (error as any).message === "string"
+      ) {
+        const msg = (error as any).message as string
+        if (msg.includes("webhook") || msg.includes("invalid JSON")) {
+          errorMessage =
+            "The AI service is temporarily unavailable due to a backend configuration issue. The message processing webhook is not responding properly. Please try again in a few minutes or contact support."
+        } else if (msg.includes("network") || msg.includes("fetch")) {
+          errorMessage = "Network connection issue. Please check your internet connection and try again."
+        } else if (msg.includes("timeout")) {
+          errorMessage = "The request timed out. Please try again with a shorter message."
+        }
       }
 
       const errorMsg: Message = {
