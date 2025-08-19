@@ -24,7 +24,7 @@ export default function ChatApp() {
   const [isLoading, setIsLoading] = useState(false)
   const [mounted, setMounted] = useState(false)
 
-  // NHost authentication
+  // NHost authentication - safe for SSR
   const { isAuthenticated, isLoading: authLoading } = useAuthenticationStatus()
   const user = useUserData()
   const { signInEmailPassword, isLoading: signInLoading, error: signInError } = useSignInEmailPassword()
@@ -102,55 +102,19 @@ export default function ChatApp() {
 
   const createNewChat = async (firstMessage?: string) => {
     try {
-      // Start with a placeholder title for immediate UI feedback
-      const placeholderTitle = firstMessage ? "Generating title..." : `Chat ${new Date().toLocaleTimeString()}`
-      console.log("[v0] Creating new chat with placeholder title:", placeholderTitle)
+      const chatTitle = generateChatTitle(firstMessage || "")
+      console.log("[v0] Creating new chat with title:", chatTitle)
 
-      const data = await makeGraphQLRequest(MUTATIONS.CREATE_CHAT, { title: placeholderTitle })
+      const data = await makeGraphQLRequest(MUTATIONS.CREATE_CHAT, { title: chatTitle })
       const newChat = data.insert_chats_one
 
       setChats((prev) => [newChat, ...prev])
       setCurrentChatId(newChat.id)
       setMessages([])
-
-      // Generate AI title in the background if we have a first message
-      if (firstMessage && firstMessage.trim()) {
-        generateChatTitleAsync(newChat.id, firstMessage)
-      }
-
       return newChat.id
     } catch (error) {
       console.error("[v0] Error creating chat:", error)
       return null
-    }
-  }
-
-  // Generate title asynchronously to avoid blocking UI
-  const generateChatTitleAsync = async (chatId: string, firstMessage: string) => {
-    try {
-      console.log("[App] Starting async title generation for chat:", chatId)
-      console.log("[App] First message:", firstMessage.substring(0, 50) + '...')
-      
-      const aiTitle = await generateChatTitle(firstMessage)
-      console.log("[App] Generated AI title:", aiTitle)
-      
-      if (aiTitle && aiTitle !== "Generating title..." && aiTitle.trim() !== "") {
-        console.log("[App] Updating chat title to:", aiTitle)
-        await updateChatTitle(chatId, aiTitle)
-      } else {
-        console.log("[App] AI title generation returned empty or placeholder, using fallback")
-        const fallbackTitle = firstMessage.length > 30 
-          ? firstMessage.substring(0, 30) + "..."
-          : firstMessage
-        await updateChatTitle(chatId, fallbackTitle)
-      }
-    } catch (error) {
-      console.error("[App] Error in async title generation:", error)
-      // Use fallback title if AI generation fails
-      const fallbackTitle = firstMessage.length > 30 
-        ? firstMessage.substring(0, 30) + "..."
-        : firstMessage
-      await updateChatTitle(chatId, fallbackTitle)
     }
   }
 
@@ -198,31 +162,43 @@ export default function ChatApp() {
       const query = `mutation SendMessage { sendMessage(chat_id: "${activeChatId}", message: "${userMessage.replace(/"/g, '\\"')}") { id chat_id content role created_at } }`
 
       const result = await makeGraphQLRequest(query)
-      console.log("[v0] GraphQL response (direct data):", result)
-      console.log("[v0] Result structure:", JSON.stringify(result, null, 2))
+      console.log("[v0] GraphQL response:", result)
 
-      // Since makeGraphQLRequest returns data directly, we access sendMessage directly
-      console.log("[v0] About to access result.sendMessage")
-      console.log("[v0] result.sendMessage exists:", !!result.sendMessage)
+      if (result.errors) {
+        console.error("[v0] GraphQL errors:", result.errors)
+        const error = result.errors[0]
 
-      // Add defensive checks
-      if (!result || !result.sendMessage) {
-        console.error("[v0] Missing sendMessage in result:", result)
-        throw new Error("Invalid response structure from server")
+        if (
+          error.message.includes("not a valid json response from webhook") ||
+          error.message.includes("webhook") ||
+          error.extensions?.internal?.error?.includes("invalid JSON")
+        ) {
+          const fallbackMsg: Message = {
+            id: `fallback-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+            content:
+              "I apologize, but I'm currently experiencing technical difficulties with my response system. The webhook service that processes messages is returning empty responses. Please try again in a few moments, or contact support if the issue persists.\n\nIn the meantime, I'd be happy to help once the technical issue is resolved!",
+            role: "assistant",
+            created_at: new Date().toISOString(),
+          }
+          setMessages((prev) => [...prev, fallbackMsg])
+          return
+        }
+
+        throw new Error(error.message)
       }
 
-      const botResponse = result.sendMessage
+      const botResponse = result.data.sendMessage
       const cleanBotResponse = {
         ...botResponse,
-        content: botResponse.content?.trim() || "",
+        content: botResponse.content.trim(),
       }
 
       setMessages((prev) => [...prev, cleanBotResponse])
 
-      // Update chat title if it's auto-generated (async)
       const currentChat = chats.find((chat) => chat.id === activeChatId)
       if (currentChat && isAutoGeneratedTitle(currentChat.title)) {
-        generateChatTitleAsync(activeChatId, userMessage)
+        const newTitle = generateChatTitle(userMessage)
+        await updateChatTitle(activeChatId, newTitle)
       }
     } catch (error) {
       console.error("[v0] Error sending message:", error)
@@ -236,22 +212,9 @@ export default function ChatApp() {
         typeof (error as any).message === "string"
       ) {
         const msg = (error as any).message as string
-        
-        // Check for webhook-related errors
-        if (
-          msg.includes("not a valid json response from webhook") ||
-          msg.includes("webhook") ||
-          msg.includes("invalid JSON")
-        ) {
-          const fallbackMsg: Message = {
-            id: `fallback-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
-            content:
-              "I apologize, but I'm currently experiencing technical difficulties with my response system. The webhook service that processes messages is returning empty responses. Please try again in a few moments, or contact support if the issue persists.\n\nIn the meantime, I'd be happy to help once the technical issue is resolved!",
-            role: "assistant",
-            created_at: new Date().toISOString(),
-          }
-          setMessages((prev) => [...prev, fallbackMsg])
-          return
+        if (msg.includes("webhook") || msg.includes("invalid JSON")) {
+          errorMessage =
+            "The AI service is temporarily unavailable due to a backend configuration issue. The message processing webhook is not responding properly. Please try again in a few minutes or contact support."
         } else if (msg.includes("network") || msg.includes("fetch")) {
           errorMessage = "Network connection issue. Please check your internet connection and try again."
         } else if (msg.includes("timeout")) {
@@ -271,19 +234,7 @@ export default function ChatApp() {
     }
   }
 
-  // Test AI title generation
-  const testAITitle = async () => {
-    try {
-      console.log("[Test] Testing AI title generation...")
-      const testMessage = "How do I bake chocolate chip cookies from scratch?"
-      const title = await generateChatTitle(testMessage)
-      console.log("[Test] Generated title:", title)
-      alert(`AI Title Test:\nMessage: "${testMessage}"\nGenerated Title: "${title}"`)
-    } catch (error) {
-      console.error("[Test] Error testing AI title:", error)
-      alert(`Error testing AI title: ${error}`)
-    }
-  }
+  // Test NHost connection with comprehensive checks
   const testConnection = async () => {
     try {
       console.log("[NHost] Testing connection...")
@@ -439,14 +390,7 @@ export default function ChatApp() {
 
   // Prevent hydration issues by not rendering until mounted
   if (!mounted) {
-    return (
-      <div className="flex items-center justify-center min-h-screen bg-background">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
-          <p>Initializing...</p>
-        </div>
-      </div>
-    )
+    return null
   }
 
   if (authLoading) {
@@ -531,16 +475,6 @@ export default function ChatApp() {
               >
                 Test NHost Connection
               </Button>
-              
-              {/* Test AI Title Generation */}
-              <Button 
-                type="button" 
-                variant="outline" 
-                className="w-full mt-2" 
-                onClick={testAITitle}
-              >
-                Test AI Title Generation
-              </Button>
             </form>
             <div className="mt-4 text-center">
               <Button variant="link" onClick={() => setIsLogin(!isLogin)} className="text-sm">
@@ -581,13 +515,8 @@ export default function ChatApp() {
                   loadMessages(chat.id)
                 }}
               >
-                <div className="text-left flex-1">
-                  <div className="font-medium truncate flex items-center gap-2">
-                    {chat.title}
-                    {chat.title === "Generating title..." && (
-                      <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-primary"></div>
-                    )}
-                  </div>
+                <div className="text-left">
+                  <div className="font-medium truncate">{chat.title}</div>
                   <div className="text-xs text-muted-foreground">{new Date(chat.created_at).toLocaleDateString()}</div>
                 </div>
               </Button>

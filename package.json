@@ -9,6 +9,7 @@
     "start": "next start"
   },
   "dependencies": {
+    "@google/generative-ai": "^0.24.1",
     "@hookform/resolvers": "^3.10.0",
     "@nhost/nextjs": "^2.3.0",
     "@nhost/react": "^3.11.1",

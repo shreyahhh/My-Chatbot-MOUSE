@@ -76,11 +76,18 @@ CREATE POLICY "Users can create own messages" ON messages
 - **Multi-User Authentication**: Secure user registration and login with email verification
 - **Row-Level Security**: Each user only sees their own chats and messages
 - **Real-time Chat Interface**: Modern, responsive chat UI with message bubbles
-- **Auto-naming Chats**: Automatically names chats based on the first message
+- **AI-Powered Chat Titles**: Intelligent chat naming using Google Gemini AI
+- **Auto-naming Chats**: Smart fallback system for chat title generation
 - **Message History**: Persistent chat history with PostgreSQL storage
 - **Markdown Support**: Rich text formatting with **bold** and *italic* support
 - **Typing Indicators**: Visual feedback during message processing
 - **Error Handling**: Comprehensive error handling with user-friendly messages
+
+### AI Features
+- **Gemini Integration**: Google's Gemini AI analyzes first messages to generate descriptive titles
+- **Smart Fallback**: Rule-based title generation when AI is unavailable
+- **Async Processing**: Title generation happens in background for smooth UX
+- **Visual Feedback**: Loading indicators show when AI is generating titles
 
 ### Security Features
 - **JWT Authentication**: Secure token-based authentication via NHost
@@ -134,9 +141,28 @@ Before running this application, ensure you have:
 Create a `.env.local` file with the following variables:
 
 ```bash
+# NHost Configuration (Required)
 NEXT_PUBLIC_NHOST_SUBDOMAIN=your-nhost-subdomain
 NEXT_PUBLIC_NHOST_REGION=your-nhost-region
+
+# Gemini AI Configuration (Optional - for intelligent chat titles)
+GEMINI_API_KEY=your-gemini-api-key
 ```
+
+### API Keys Setup
+
+#### NHost (Required)
+1. Create account at [nhost.io](https://nhost.io)
+2. Create new project
+3. Get subdomain and region from project dashboard
+
+#### Gemini AI (Optional but Recommended)
+1. Visit [Google AI Studio](https://aistudio.google.com/)
+2. Sign in with Google account
+3. Create API key
+4. Add to `.env.local`
+
+**Note**: If Gemini API key is not provided, the app will use smart rule-based title generation as fallback.
 
 ### NHost Setup
 
