@@ -49,6 +49,7 @@ export const QUERIES = {
         content
         role
         created_at
+        chat_id
       }
     }
   `,
@@ -71,6 +72,18 @@ export const MUTATIONS = {
       update_chats_by_pk(pk_columns: {id: $id}, _set: {title: $title}) {
         id
         title
+      }
+    }
+  `,
+
+  INSERT_MESSAGE: `
+    mutation InsertMessage($chat_id: uuid!, $content: String!, $role: String!) {
+      insert_messages_one(object: {chat_id: $chat_id, content: $content, role: $role}) {
+        id
+        chat_id
+        content
+        role
+        created_at
       }
     }
   `,

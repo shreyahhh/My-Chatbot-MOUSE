@@ -92,11 +92,28 @@ export default function ChatApp() {
 
   const loadMessages = async (chatId: string) => {
     try {
-      console.log("[v0] Loading messages for chat:", chatId)
+      console.log("[Chat] Loading complete history for chat:", chatId)
+      
       const data = await makeGraphQLRequest(QUERIES.GET_MESSAGES, { chat_id: chatId })
-      setMessages(data.messages)
+      
+      if (data.messages) {
+        // Ensure both user and assistant messages are properly formatted
+        const formattedMessages = data.messages.map((msg: any) => ({
+          id: msg.id,
+          content: msg.content,
+          role: msg.role, // This should be either "user" or "assistant"
+          created_at: msg.created_at
+        }))
+
+        console.log("[Chat] Loaded", formattedMessages.length, "messages:", formattedMessages)
+        setMessages(formattedMessages)
+      } else {
+        console.log("[Chat] No messages found for chat:", chatId)
+        setMessages([])
+      }
     } catch (error) {
-      console.error("[v0] Error loading messages:", error)
+      console.error("[Chat] Error loading messages:", error)
+      setMessages([]) // Clear messages on error
     }
   }
 
@@ -182,17 +199,39 @@ export default function ChatApp() {
       activeChatId = newChatId
     }
 
-    // Add user message to UI with guaranteed unique ID
-    const userMsg: Message = {
-      id: `user-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
-      content: userMessage,
-      role: "user",
-      created_at: new Date().toISOString(),
-    }
-    setMessages((prev) => [...prev, userMsg])
-
     try {
-      console.log("[v0] Sending message:", userMessage)
+      // First, save the user message to the database
+      console.log("[Chat] Saving user message to database:", userMessage)
+      const userMessageResult = await makeGraphQLRequest(MUTATIONS.INSERT_MESSAGE, {
+        chat_id: activeChatId,
+        content: userMessage,
+        role: 'user'
+      })
+
+      console.log("[Chat] User message saved:", userMessageResult)
+
+      // Add user message to UI with the ID from database
+      let userMsg: Message
+      if (userMessageResult.insert_messages_one) {
+        userMsg = {
+          id: userMessageResult.insert_messages_one.id,
+          content: userMessageResult.insert_messages_one.content,
+          role: userMessageResult.insert_messages_one.role,
+          created_at: userMessageResult.insert_messages_one.created_at
+        }
+      } else {
+        // Fallback if database insert fails
+        userMsg = {
+          id: `user-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+          content: userMessage,
+          role: "user",
+          created_at: new Date().toISOString(),
+        }
+      }
+      setMessages((prev) => [...prev, userMsg])
+
+      // Then, get the bot response
+      console.log("[v0] Getting bot response for:", userMessage)
       console.log("[v0] Using chat ID:", activeChatId)
 
       const query = `mutation SendMessage { sendMessage(chat_id: "${activeChatId}", message: "${userMessage.replace(/"/g, '\\"')}") { id chat_id content role created_at } }`
