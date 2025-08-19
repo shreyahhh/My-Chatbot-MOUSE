@@ -271,87 +271,6 @@ export default function ChatApp() {
     }
   }
 
-  // Test AI title generation
-  const testAITitle = async () => {
-    try {
-      console.log("[Test] Testing AI title generation...")
-      const testMessage = "How do I bake chocolate chip cookies from scratch?"
-      const title = await generateChatTitle(testMessage)
-      console.log("[Test] Generated title:", title)
-      alert(`AI Title Test:\nMessage: "${testMessage}"\nGenerated Title: "${title}"`)
-    } catch (error) {
-      console.error("[Test] Error testing AI title:", error)
-      alert(`Error testing AI title: ${error}`)
-    }
-  }
-  const testConnection = async () => {
-    try {
-      console.log("[NHost] Testing connection...")
-      console.log("Environment vars:")
-      console.log("- SUBDOMAIN:", process.env.NEXT_PUBLIC_NHOST_SUBDOMAIN)
-      console.log("- REGION:", process.env.NEXT_PUBLIC_NHOST_REGION)
-      
-      // Import nhost directly for testing
-      const { nhost } = await import('@/lib/nhost')
-      
-      // Test 1: Check GraphQL endpoint availability
-      console.log("\n[Test 1] Checking GraphQL endpoint...")
-      const graphqlUrl = nhost.graphql.getUrl()
-      console.log("GraphQL URL:", graphqlUrl)
-      
-      try {
-        const graphqlResponse = await fetch(graphqlUrl, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ query: "{ __typename }" })
-        })
-        console.log("GraphQL endpoint status:", graphqlResponse.status)
-        if (graphqlResponse.status === 200) {
-          console.log("✅ GraphQL endpoint is accessible")
-        } else {
-          console.log("❌ GraphQL endpoint returned:", graphqlResponse.status)
-        }
-      } catch (gqlError) {
-        console.error("❌ GraphQL endpoint test failed:", gqlError)
-      }
-      
-      // Test 2: Check authentication endpoint
-      console.log("\n[Test 2] Testing authentication...")
-      console.log("Auth subdomain:", process.env.NEXT_PUBLIC_NHOST_SUBDOMAIN)
-      console.log("Auth region:", process.env.NEXT_PUBLIC_NHOST_REGION)
-      console.log("Client authentication status:", nhost.auth.isAuthenticated())
-      
-      // Test signup with a unique email
-      const testEmail = `test+${Date.now()}@example.com`
-      console.log("Testing signup with email:", testEmail)
-      
-      const result = await nhost.auth.signUp({
-        email: testEmail,
-        password: "TestPassword123!",
-        options: {
-          displayName: "Test User"
-        }
-      })
-      
-      console.log("\n[Test 2 Result] Signup result:", result)
-      
-      if (result.error) {
-        console.error("❌ Signup failed:", result.error)
-        alert(`Authentication test failed: ${result.error.message}\n\nPossible issues:\n1. NHost project might be inactive\n2. Email/password settings might be disabled\n3. Invalid subdomain/region\n\nCheck console for details.`)
-      } else if (result.session) {
-        console.log("✅ Signup successful! Session created.")
-        alert("🎉 NHost connection is working perfectly!")
-      } else {
-        console.log("⚠️ Signup completed, may need email verification")
-        alert("✅ Connection successful! Signup completed.\n(Email verification may be required)")
-      }
-      
-    } catch (error) {
-      console.error("❌ Connection test error:", error)
-      alert(`Connection error: ${error}\n\nThis might indicate:\n1. Network connectivity issues\n2. Invalid NHost configuration\n3. NHost project issues\n\nCheck console for details.`)
-    }
-  }
-
   const handleKeyPress = (e: React.KeyboardEvent) => {
     if (e.key === "Enter" && !e.shiftKey) {
       e.preventDefault()
@@ -520,26 +439,6 @@ export default function ChatApp() {
                 disabled={isLogin ? signInLoading : signUpLoading}
               >
                 {isLogin ? (signInLoading ? "Signing in..." : "Login") : (signUpLoading ? "Creating account..." : "Sign Up")}
-              </Button>
-              
-              {/* Temporary test button */}
-              <Button 
-                type="button" 
-                variant="outline" 
-                className="w-full" 
-                onClick={testConnection}
-              >
-                Test NHost Connection
-              </Button>
-              
-              {/* Test AI Title Generation */}
-              <Button 
-                type="button" 
-                variant="outline" 
-                className="w-full mt-2" 
-                onClick={testAITitle}
-              >
-                Test AI Title Generation
               </Button>
             </form>
             <div className="mt-4 text-center">
