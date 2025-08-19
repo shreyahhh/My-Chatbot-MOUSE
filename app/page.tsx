@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { ScrollArea } from "@/components/ui/scroll-area"
-import { Send, MessageCircle, LogOut } from "lucide-react"
+import { Send, MessageCircle, LogOut, Sun, Moon, MessageSquare, Sparkles, Brain, CheckCircle, X } from "lucide-react"
 
 import { STORAGE_KEYS } from "@/lib/constants"
 import { makeGraphQLRequest, QUERIES, MUTATIONS } from "@/lib/graphql"
@@ -23,6 +23,8 @@ export default function ChatApp() {
   const [inputMessage, setInputMessage] = useState("")
   const [isLoading, setIsLoading] = useState(false)
   const [mounted, setMounted] = useState(false)
+  const [isDarkMode, setIsDarkMode] = useState(false)
+  const [showSuccessModal, setShowSuccessModal] = useState(false)
 
   // NHost authentication
   const { isAuthenticated, isLoading: authLoading } = useAuthenticationStatus()
@@ -367,6 +369,7 @@ export default function ChatApp() {
         console.log("[NHost] Attempting signup for:", email)
         const result = await signUpEmailPassword(email, password, {
           displayName: name,
+          redirectTo: process.env.NEXT_PUBLIC_APP_URL || 'https://mouseai.netlify.app',
         })
         console.log("[NHost] Signup result:", result)
         
@@ -377,7 +380,7 @@ export default function ChatApp() {
         }
         
         if (result.needsEmailVerification) {
-          alert("Account created! Please check your email to verify your account before signing in.")
+          setShowSuccessModal(true)
         } else {
           alert("Account created successfully! You can now sign in.")
         }
@@ -405,6 +408,32 @@ export default function ChatApp() {
     setName("")
   }
 
+  const toggleTheme = () => {
+    setIsDarkMode(!isDarkMode)
+    if (typeof window !== 'undefined') {
+      document.documentElement.classList.toggle('dark', !isDarkMode)
+    }
+  }
+
+  // Initialize theme from localStorage
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const savedTheme = localStorage.getItem('theme')
+      const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches
+      const shouldBeDark = savedTheme === 'dark' || (!savedTheme && prefersDark)
+      
+      setIsDarkMode(shouldBeDark)
+      document.documentElement.classList.toggle('dark', shouldBeDark)
+    }
+  }, [])
+
+  // Save theme to localStorage
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('theme', isDarkMode ? 'dark' : 'light')
+    }
+  }, [isDarkMode])
+
   // Prevent hydration issues by not rendering until mounted
   if (!mounted) {
     return (
@@ -431,6 +460,45 @@ export default function ChatApp() {
   if (!isAuthenticated) {
     return (
       <div className="flex items-center justify-center min-h-screen bg-background">
+        {/* Success Modal */}
+        {showSuccessModal && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
+            <div className="bg-background border rounded-lg p-6 max-w-md mx-4 shadow-lg">
+              <div className="flex items-center justify-between mb-4">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-full bg-green-100 dark:bg-green-900/20 flex items-center justify-center">
+                    <CheckCircle className="w-6 h-6 text-green-600 dark:text-green-400" />
+                  </div>
+                  <h3 className="text-lg font-semibold">Account Created!</h3>
+                </div>
+                <Button 
+                  variant="ghost" 
+                  size="icon"
+                  onClick={() => setShowSuccessModal(false)}
+                  className="h-8 w-8"
+                >
+                  <X className="w-4 h-4" />
+                </Button>
+              </div>
+              <div className="space-y-3">
+                <p className="text-muted-foreground">
+                  Your account has been created successfully! Please check your email to verify your account before signing in.
+                </p>
+                <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-md p-3">
+                  <p className="text-sm text-blue-800 dark:text-blue-200">
+                    💡 <strong>Tip:</strong> Don't forget to check your spam folder if you don't see the verification email.
+                  </p>
+                </div>
+              </div>
+              <div className="flex justify-end mt-6">
+                <Button onClick={() => setShowSuccessModal(false)} className="px-6">
+                  Got it!
+                </Button>
+              </div>
+            </div>
+          </div>
+        )}
+        
         <Card className="w-96">
           <CardHeader>
             <CardTitle className="text-center">{isLogin ? "Login to Chat" : "Create Account"}</CardTitle>
@@ -504,13 +572,18 @@ export default function ChatApp() {
   return (
     <div className="flex h-screen bg-background">
       {/* Sidebar */}
-      <div className="w-80 border-r bg-card">
+      <div className="w-80 border-r bg-card flex flex-col">
         <div className="p-4 border-b">
           <div className="flex justify-between items-center mb-4">
-            <h2 className="font-semibold">Chat History</h2>
-            <Button variant="ghost" size="icon" onClick={handleLogout} title="Logout">
-              <LogOut className="w-4 h-4" />
-            </Button>
+            <h2 className="font-semibold">mouseAI</h2>
+            <div className="flex items-center gap-2">
+              <Button variant="ghost" size="icon" onClick={toggleTheme} title="Toggle Theme">
+                {isDarkMode ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
+              </Button>
+              <Button variant="ghost" size="icon" onClick={handleLogout} title="Logout">
+                <LogOut className="w-4 h-4" />
+              </Button>
+            </div>
           </div>
           <Button onClick={() => createNewChat()} className="w-full">
             <MessageCircle className="w-4 h-4 mr-2" />
@@ -542,6 +615,25 @@ export default function ChatApp() {
             ))}
           </div>
         </ScrollArea>
+        
+        {/* User info at bottom */}
+        <div className="p-4 border-t">
+          <div className="flex items-center gap-3">
+            <div className="w-8 h-8 rounded-full bg-primary flex items-center justify-center">
+              <span className="text-primary-foreground font-medium text-sm">
+                {user?.displayName?.charAt(0).toUpperCase() || user?.email?.charAt(0).toUpperCase() || 'U'}
+              </span>
+            </div>
+            <div className="flex-1 min-w-0">
+              <div className="text-sm font-bold truncate">
+                {user?.displayName || user?.email?.split('@')[0] || 'User'}
+              </div>
+              <div className="text-xs text-muted-foreground truncate">
+                {user?.email}
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
 
       {/* Main chat area */}
@@ -576,10 +668,57 @@ export default function ChatApp() {
           </>
         ) : (
           <div className="flex-1 flex items-center justify-center">
-            <div className="text-center">
-              <MessageCircle className="w-12 h-12 mx-auto mb-4 text-muted-foreground" />
-              <h3 className="text-lg font-medium mb-2">No Chat Selected</h3>
-              <p className="text-muted-foreground">Create a new chat or select an existing one to start messaging.</p>
+            <div className="text-center max-w-4xl mx-auto px-8">
+              {/* Main branding */}
+              <div className="mb-12">
+                <div className="w-16 h-16 mx-auto mb-6 rounded-2xl bg-primary flex items-center justify-center">
+                  <MessageCircle className="w-8 h-8 text-primary-foreground" />
+                </div>
+                <h1 className="text-5xl font-bold mb-4 bg-gradient-to-r from-primary to-primary/70 bg-clip-text text-transparent">
+                  mouseAI
+                </h1>
+                <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
+                  Your intelligent AI companion for conversations, creativity, and problem-solving. Start a new chat to begin your journey.
+                </p>
+              </div>
+
+              {/* Feature cards */}
+              <div className="grid md:grid-cols-3 gap-6 mb-12">
+                <Card className="border-2 border-border/50 hover:border-primary/50 transition-colors">
+                  <CardContent className="p-6 text-center">
+                    <MessageSquare className="w-12 h-12 mx-auto mb-4 text-primary" />
+                    <h3 className="text-lg font-semibold mb-2">Natural Conversations</h3>
+                    <p className="text-muted-foreground text-sm">
+                      Chat naturally with advanced AI that understands context and nuance
+                    </p>
+                  </CardContent>
+                </Card>
+
+                <Card className="border-2 border-border/50 hover:border-primary/50 transition-colors">
+                  <CardContent className="p-6 text-center">
+                    <Sparkles className="w-12 h-12 mx-auto mb-4 text-primary" />
+                    <h3 className="text-lg font-semibold mb-2">Creative Solutions</h3>
+                    <p className="text-muted-foreground text-sm">
+                      Get help with creative writing, brainstorming, and problem-solving
+                    </p>
+                  </CardContent>
+                </Card>
+
+                <Card className="border-2 border-border/50 hover:border-primary/50 transition-colors">
+                  <CardContent className="p-6 text-center">
+                    <Brain className="w-12 h-12 mx-auto mb-4 text-primary" />
+                    <h3 className="text-lg font-semibold mb-2">Intelligent Responses</h3>
+                    <p className="text-muted-foreground text-sm">
+                      Receive thoughtful, accurate responses powered by cutting-edge AI
+                    </p>
+                  </CardContent>
+                </Card>
+              </div>
+
+              {/* Start conversation button */}
+              <Button size="lg" onClick={() => createNewChat()} className="px-8 py-3 text-lg">
+                Start New Conversation
+              </Button>
             </div>
           </div>
         )}
