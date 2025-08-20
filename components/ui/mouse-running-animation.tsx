@@ -40,7 +40,7 @@ export function MouseRunningAnimation() {
 
     const interval = setInterval(() => {
       setCurrentFrame(prev => prev === 1 ? 2 : 1)
-    }, 200) // Slower animation for better visibility
+    }, 100) // Faster frame switching for more dynamic animation
 
     return () => clearInterval(interval)
   }, [isClient, imagesLoaded.size])
@@ -55,13 +55,13 @@ export function MouseRunningAnimation() {
   }
 
   return (
-    <div className="fixed bottom-0 left-0 w-full h-24 pointer-events-none z-10 overflow-hidden">
+    <div className="fixed bottom-0 left-0 w-full h-28 pointer-events-none z-10 overflow-hidden">
       <div className="relative w-full h-full">
         {/* Mouse Animation Container */}
         <div 
           className="absolute bottom-8 w-16 h-12"
           style={{
-            animation: 'runAcross 12s linear infinite',
+            animation: 'runAcross 6s linear infinite',
             animationFillMode: 'forwards'
           }}
         >
