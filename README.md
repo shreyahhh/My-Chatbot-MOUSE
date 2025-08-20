@@ -1,4 +1,4 @@
-# 🐭 mouseAI: AI-Powered Chat Application
+# mouseAI: AI-Powered Chat Application
 
 A modern, intelligent chat application built with **Next.js 14**, **NHost Authentication**, **Hasura GraphQL**, and **Google Gemini AI**. Features real-time messaging, AI-powered chat titles, and enterprise-grade security.
 
@@ -7,6 +7,10 @@ A modern, intelligent chat application built with **Next.js 14**, **NHost Authen
 ![TypeScript](https://img.shields.io/badge/TypeScript-5-blue)
 ![Hasura](https://img.shields.io/badge/Hasura-GraphQL-purple)
 ![Gemini AI](https://img.shields.io/badge/Google-Gemini%20AI-orange)
+
+## Live Demo
+
+[mouseAI](https://mouseai.netlify.app/)
 
 ## ✨ Features
 
