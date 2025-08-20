@@ -549,7 +549,7 @@ export default function ChatApp() {
                     e.currentTarget.style.display = 'none';
                   }}
                 />
-                <h1 className="text-xl font-bold">MouseAI</h1>
+                <h1 className="text-xl font-bold text-gray-900 dark:text-black">MouseAI</h1>
               </div>
               
               {/* Documentation Button */}
@@ -557,10 +557,10 @@ export default function ChatApp() {
                 <Button 
                   variant="ghost" 
                   size="icon" 
-                  className="w-10 h-10 rounded-full hover:bg-muted transition-colors"
+                  className="w-12 h-12 rounded-full hover:bg-muted transition-colors"
                   title="Documentation"
                 >
-                  <FileText className="w-5 h-5" />
+                  <FileText className="w-6 h-6 text-gray-900 dark:text-black" />
                 </Button>
               </Link>
             </div>
@@ -571,7 +571,7 @@ export default function ChatApp() {
             <div className="flex-1 flex items-center justify-center p-8">
               <div className="max-w-md space-y-6">
                 <div className="space-y-4">
-                  <h2 className="text-4xl font-bold leading-tight">
+                  <h2 className="text-4xl font-bold leading-tight text-gray-900 dark:text-black">
                     AI-Powered Intelligence at Your Fingertips
                   </h2>
                   <p className="text-lg text-muted-foreground leading-relaxed">
@@ -829,16 +829,16 @@ export default function ChatApp() {
                   </div>
                 ) : (
                   // Normal mode
-                  <div className="flex items-center group">
+                  <div className="flex items-center">
                     <Button
                       variant="ghost"
-                      className="flex-1 justify-start h-auto p-3 text-left overflow-hidden"
+                      className="flex-1 justify-start h-auto p-3 text-left"
                       onClick={() => {
                         setCurrentChatId(chat.id)
                         loadMessages(chat.id)
                       }}
                     >
-                      <div className="flex-1 min-w-0 transition-all duration-200 group-hover:pr-20">
+                      <div className="flex-1">
                         <div className="font-medium truncate flex items-center gap-2">
                           {chat.title}
                           {chat.title === "Generating title..." && (
@@ -851,8 +851,8 @@ export default function ChatApp() {
                       </div>
                     </Button>
                     
-                    {/* Action buttons - slide in on hover */}
-                    <div className="absolute right-2 opacity-0 group-hover:opacity-100 transition-all duration-200 transform translate-x-2 group-hover:translate-x-0 flex items-center gap-1">
+                    {/* Action buttons - shown on hover */}
+                    <div className="opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-1 pr-2">
                       <Button
                         size="sm"
                         variant="ghost"
@@ -860,7 +860,7 @@ export default function ChatApp() {
                           e.stopPropagation()
                           startEditingChat(chat.id, chat.title)
                         }}
-                        className="h-7 w-7 p-0 hover:bg-accent"
+                        className="h-8 w-8 p-0"
                         title="Edit chat name"
                       >
                         <Edit2 className="h-3 w-3" />
@@ -872,7 +872,7 @@ export default function ChatApp() {
                           e.stopPropagation()
                           showDeleteConfirmation(chat.id, chat.title)
                         }}
-                        className="h-7 w-7 p-0 text-destructive hover:text-destructive hover:bg-destructive/10"
+                        className="h-8 w-8 p-0 text-destructive hover:text-destructive"
                         title="Delete chat"
                       >
                         <Trash2 className="h-3 w-3" />
@@ -895,7 +895,7 @@ export default function ChatApp() {
             </div>
             <div className="flex-1 min-w-0">
               <div className="text-sm font-bold truncate">
-                {user?.displayName || 'User'}
+                {user?.displayName || user?.email?.split('@')[0] || 'User'}
               </div>
               <div className="text-xs text-muted-foreground truncate">
                 {user?.email}

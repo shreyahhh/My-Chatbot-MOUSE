@@ -585,9 +585,9 @@ export default function DocsPage() {
             </div>
             
             {/* Developer Info */}
-            <div className="bg-background/50 p-4 rounded-lg">
-              <div className="text-right mb-3">
-                <p className="font-medium text-sm">Shreya</p>
+            <div className="p-4">
+              <div className="text-left mb-3">
+                <p className="font-medium text-sm">created by Shreya</p>
                 <p className="text-xs text-muted-foreground">Full Stack Developer</p>
               </div>
               <div className="flex justify-start gap-2">

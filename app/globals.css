@@ -155,9 +155,21 @@
 @keyframes runAcross {
   0% {
     left: 100%;
+    transform: translateX(0);
   }
   100% {
-    left: -80px;
+    left: -120px;
+    transform: translateX(-100%);
+  }
+}
+
+/* Smooth animation variants */
+@keyframes runAcrossSmooth {
+  0% {
+    transform: translateX(calc(100vw + 120px));
+  }
+  100% {
+    transform: translateX(-120px);
   }
 }
 
@@ -168,11 +180,15 @@
 }
 
 .animate-runAcross {
-  animation: runAcross 4s linear infinite;
+  animation: runAcross 12s linear infinite;
+  will-change: transform;
+  backface-visibility: hidden;
 }
 
 .animate-runAcrossWithFrames {
-  animation: runAcross 4s linear infinite, switchFrames 0.2s steps(1) infinite;
+  animation: runAcross 12s linear infinite, switchFrames 0.3s steps(1) infinite;
+  will-change: transform;
+  backface-visibility: hidden;
 }
 
 @keyframes mouseFrame1 {
