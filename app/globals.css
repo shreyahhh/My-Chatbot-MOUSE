@@ -121,3 +121,86 @@
     @apply bg-background text-foreground;
   }
 }
+
+/* Custom keyframe animation for loading indicator */
+@keyframes keyframes-animation {
+  0% {
+    transform: scale(1) rotate(0deg);
+    border-radius: 0%;
+  }
+  20% {
+    transform: scale(2) rotate(0deg);
+    border-radius: 0%;
+  }
+  50% {
+    transform: scale(2) rotate(180deg);
+    border-radius: 50%;
+  }
+  80% {
+    transform: scale(1) rotate(180deg);
+    border-radius: 50%;
+  }
+  100% {
+    transform: scale(1) rotate(0deg);
+    border-radius: 0%;
+  }
+}
+
+.animate-keyframes {
+  animation: keyframes-animation 2s ease-in-out infinite;
+  animation-delay: 1s;
+}
+
+/* Mouse running animation */
+@keyframes runAcross {
+  0% {
+    left: 100%;
+  }
+  100% {
+    left: -80px;
+  }
+}
+
+@keyframes switchFrames {
+  0% { opacity: 1; }
+  50% { opacity: 0; }
+  100% { opacity: 1; }
+}
+
+.animate-runAcross {
+  animation: runAcross 4s linear infinite;
+}
+
+.animate-runAcrossWithFrames {
+  animation: runAcross 4s linear infinite, switchFrames 0.2s steps(1) infinite;
+}
+
+@keyframes mouseFrame1 {
+  0%, 50% { opacity: 1; }
+  51%, 100% { opacity: 0; }
+}
+
+@keyframes mouseFrame2 {
+  0%, 50% { opacity: 0; }
+  51%, 100% { opacity: 1; }
+}
+
+.animate-mouseFrame1 {
+  animation: mouseFrame1 0.3s ease-in-out infinite;
+}
+
+.animate-mouseFrame2 {
+  animation: mouseFrame2 0.3s ease-in-out infinite;
+}
+
+@keyframes mouseLoading {
+  0% { transform: scale(1) rotate(0deg); }
+  25% { transform: scale(1.1) rotate(-5deg); }
+  50% { transform: scale(1.2) rotate(5deg); }
+  75% { transform: scale(1.1) rotate(-5deg); }
+  100% { transform: scale(1) rotate(0deg); }
+}
+
+.animate-mouseLoading {
+  animation: mouseLoading 0.6s ease-in-out infinite;
+}

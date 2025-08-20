@@ -1,5 +1,6 @@
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { Bot, User } from "lucide-react"
+import Image from "next/image"
 import type { Message } from "@/lib/types"
 
 interface MessageBubbleProps {
@@ -63,9 +64,24 @@ export function MessageBubble({ message }: MessageBubbleProps) {
   return (
     <div className={`flex gap-3 ${message.role === "user" ? "justify-end" : "justify-start"}`}>
       {message.role === "assistant" && (
-        <Avatar className="w-8 h-8">
-          <AvatarFallback>
-            <Bot className="w-4 h-4" />
+        <Avatar className="w-14 h-14">
+          <AvatarFallback className="border-none">
+            <Image
+              src="/mouse3-nobg.png"
+              alt="MouseAI"
+              width={40}
+              height={40}
+              className="w-10 h-10 object-contain"
+              onError={(e) => {
+                e.currentTarget.style.display = 'none';
+                const fallback = e.currentTarget.parentElement?.querySelector('.fallback-emoji') as HTMLElement;
+                if (fallback) fallback.style.display = 'flex';
+              }}
+            />
+            {/* Fallback emoji - hidden by default, shown if image fails */}
+            <div className="fallback-emoji w-10 h-10 flex items-center justify-center text-2xl" style={{ display: 'none' }}>
+              🐭
+            </div>
           </AvatarFallback>
         </Avatar>
       )}

@@ -76,6 +76,17 @@ export const MUTATIONS = {
     }
   `,
 
+  DELETE_CHAT: `
+    mutation DeleteChat($id: uuid!) {
+      delete_messages(where: {chat_id: {_eq: $id}}) {
+        affected_rows
+      }
+      delete_chats_by_pk(id: $id) {
+        id
+      }
+    }
+  `,
+
   INSERT_MESSAGE: `
     mutation InsertMessage($chat_id: uuid!, $content: String!, $role: String!) {
       insert_messages_one(object: {chat_id: $chat_id, content: $content, role: $role}) {
