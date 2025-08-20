@@ -1,6 +1,7 @@
 @import 'tailwindcss';
 @import 'tw-animate-css';
 
+/* Tailwind CSS custom variant for dark mode */
 @custom-variant dark (&:is(.dark *));
 
 :root {
@@ -74,6 +75,7 @@
   --sidebar-ring: oklch(0.439 0 0);
 }
 
+/* Tailwind CSS theme configuration */
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
@@ -115,9 +117,11 @@
 
 @layer base {
   * {
+    /* Tailwind CSS utility classes */
     @apply border-border outline-ring/50;
   }
   body {
+    /* Tailwind CSS utility classes */
     @apply bg-background text-foreground;
   }
 }

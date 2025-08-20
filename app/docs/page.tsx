@@ -16,7 +16,8 @@ import {
   Mail,
   Heart,
   ArrowLeft,
-  Linkedin
+  Linkedin,
+  Lock
 } from "lucide-react"
 import Image from "next/image"
 import Link from "next/link"
@@ -32,6 +33,7 @@ const tableOfContents = [
     title: "My Development",
     icon: Code,
     subItems: [
+      { id: "signup-login", title: "Sign Up / Log In" },
       { id: "frontend", title: "Frontend Framework" },
       { id: "ui-styling", title: "UI & Styling" },
       { id: "backend", title: "Backend Services" },
@@ -113,6 +115,23 @@ export default function DocsPage() {
             <p className="text-lg text-muted-foreground mb-6">
               Comprehensive overview of the technical implementation and development process.
             </p>
+
+            <div className="mb-8">
+              <h2 className="text-2xl font-semibold mb-4">🛠️ My Development</h2>
+              <div className="space-y-4">
+                {/* Signup and Login Subsection */}
+                <div className="bg-muted/50 p-4 rounded-lg">
+                  <h3 className="font-semibold mb-2">Signup and Login</h3>
+                  <ul className="space-y-1 text-sm text-muted-foreground">
+                    <li>• <strong>Signup:</strong> Users can register using email, Google, or GitHub. Email signup requires verification before login.</li>
+                    <li>• <strong>Login:</strong> Users can log in with registered email/password, Google, or GitHub. If an unregistered email is used, a "User does not exist" error is shown.</li>
+                    <li>• <strong>Password Recovery:</strong> Users can reset their password via email.</li>
+                    <li>• <strong>Security:</strong> Passwords must meet complexity requirements.</li>
+                  </ul>
+                </div>
+                {/* ...other development sections... */}
+              </div>
+            </div>
             
             <div className="grid gap-4">
               {tableOfContents.find(item => item.id === "my-development")?.subItems?.map((subItem) => (
@@ -123,6 +142,7 @@ export default function DocsPage() {
                 >
                   <h3 className="font-semibold mb-2">{subItem.title}</h3>
                   <p className="text-sm text-muted-foreground">
+                    {subItem.id === "signup-login" && "Complete authentication system with OAuth integration, email verification, and security requirements"}
                     {subItem.id === "frontend" && "Next.js 15 with TypeScript implementation, App Router, and performance optimizations"}
                     {subItem.id === "ui-styling" && "shadcn/ui component library with Tailwind CSS for modern, responsive design"}
                     {subItem.id === "backend" && "NHost backend services with GraphQL API, Hasura engine, and PostgreSQL database"}
@@ -160,6 +180,44 @@ export default function DocsPage() {
                   </p>
                 </div>
               ))}
+            </div>
+          </div>
+        )
+
+      case "signup-login":
+        return (
+          <div className="space-y-6">
+            <h1 className="text-3xl font-bold mb-4">Sign Up / Log In</h1>
+            
+            <div className="bg-muted p-6 rounded-lg">
+              <h2 className="text-xl font-semibold mb-4 flex items-center gap-2">
+                <Lock className="w-5 h-5" />
+                Authentication System
+              </h2>
+              <div className="space-y-4">
+                <div>
+                  <h3 className="font-medium mb-2">Multi-Provider Authentication</h3>
+                  <p className="text-sm text-muted-foreground mb-4">
+                    Complete authentication system supporting multiple sign-up and login methods 
+                    with secure session management and user verification processes.
+                  </p>
+                </div>
+
+                {/* Footer */}
+                <div className="mt-8 space-y-4">
+                  {/* Docs Tab: Signup Settings Subsection */}
+                  <div className="bg-gray-50 dark:bg-gray-800/50 border border-gray-200 dark:border-gray-700 rounded-xl p-4">
+                    <h4 className="text-sm font-semibold text-gray-800 dark:text-gray-200 mb-2">Signup Settings</h4>
+                    <ul className="text-xs text-gray-600 dark:text-gray-400 space-y-1">
+                      <li>• Signup available via Email, Google, and GitHub</li>
+                      <li>• Email signup requires verification before login</li>
+                      <li>• Password must be at least 8 characters, include uppercase, lowercase, digit, and special character</li>
+                      <li>• OAuth signups (Google/GitHub) do not require email verification</li>
+                    </ul>
+                  </div>
+                  {/* ...existing footer content... */}
+                </div>
+              </div>
             </div>
           </div>
         )

@@ -16,6 +16,15 @@ A modern, intelligent chat application built with **Next.js 14**, **NHost Authen
 - **Real-time Processing**: Async AI processing with visual loading indicators
 - **Context Awareness**: AI understands message context for better title generation
 
+### 🔑 Login Functionality
+
+- Users can log in using:
+  - Email and password (after verification)
+  - Google OAuth
+  - GitHub OAuth
+- Passwords must meet complexity requirements (min 8 chars, uppercase, lowercase, digit, special character).
+- Forgot password option sends a reset link to the registered email.
+
 ### 🔐 Enterprise Security
 - **NHost Authentication**: Secure JWT-based authentication with email verification
 - **Row-Level Security**: Database-level isolation ensuring users only see their own data
@@ -270,30 +279,13 @@ NEXT_PUBLIC_NHOST_REGION=your-production-region
 GEMINI_API_KEY=your-production-gemini-key
 ```
 
-### Deployment Platforms
-- **Vercel** (recommended for Next.js)
-- **Netlify**
-- **Docker container**
-- **Traditional hosting**
-
-## 🤝 Contributing
-
-1. Fork the repository
-2. Create feature branch: `git checkout -b feature/amazing-feature`
-3. Commit changes: `git commit -m 'Add amazing feature'`
-4. Push to branch: `git push origin feature/amazing-feature`
-5. Open a Pull Request
-
-## 📝 License
-
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
 ## 🙏 Acknowledgments
 
 - **NHost** for authentication and database hosting
 - **Hasura** for GraphQL API layer
 - **Google** for Gemini AI integration
-- **Vercel** for Next.js framework
+- **Netlify** for Next.js framework
 - **Shadcn/ui** for beautiful UI components
 
 ---
