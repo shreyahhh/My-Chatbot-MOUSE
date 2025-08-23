@@ -48,6 +48,13 @@ const MouseAIIntroAnimation = () => {
   };
 
   useEffect(() => {
+    const typeText = async (text: string, setter: React.Dispatch<React.SetStateAction<string>>, delay = 60) => {
+        for (let i = 0; i <= text.length; i++) {
+            setter(text.slice(0, i));
+            await new Promise(resolve => setTimeout(resolve, delay));
+        }
+    };
+    
     const runSequence = async () => {
       // Reset everything for the loop
       setCurrentStep(0);
@@ -70,11 +77,7 @@ const MouseAIIntroAnimation = () => {
       // Step 4: Mock email typing
       setTimeout(async () => {
         setCurrentStep(4);
-        const email = "user@example.com";
-        for (let i = 0; i <= email.length; i++) {
-          setEmailText(email.slice(0, i));
-          await new Promise(resolve => setTimeout(resolve, 80));
-        }
+        await typeText("user@example.com", setEmailText, 80);
       }, 5000);
       
       // Step 5: Mock password typing
@@ -98,12 +101,8 @@ const MouseAIIntroAnimation = () => {
       
       // Step 8: Mimic user typing a message
       setTimeout(async () => {
-        const message = "What is Artificial Intelligence?";
         setCurrentStep(7);
-        for (let i = 0; i <= message.length; i++) {
-          setUserMessage(message.slice(0, i));
-          await new Promise(resolve => setTimeout(resolve, 60));
-        }
+        await typeText("What is Artificial Intelligence?", setUserMessage);
       }, 10000);
       
       // Step 9: Typing is done, send button turns green
@@ -119,7 +118,7 @@ const MouseAIIntroAnimation = () => {
         // Step 11: Show the AI's response after a delay
         setTimeout(() => {
           setIsMouseRunning(false);
-          setAiResponse("Artificial intelligence (AI) is the simulation of human intelligence in machines, enabling them to learn, reason, and solve problems");
+          setAiResponse("Artificial Intelligence (AI) is the simulation of human intelligence processes by machines, especially computer systems. These processes include learning, reasoning, and self-correction.");
           setCurrentStep(10);
         }, 4000);
       }, 12500);
