@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { ScrollArea } from "@/components/ui/scroll-area"
-import { Send, MessageCircle, LogOut, Sun, Moon, MessageSquare, Sparkles, Brain, CheckCircle, X, Edit2, Trash2, MoreHorizontal, FileText } from "lucide-react"
+import { Send, MessageCircle, LogOut, Sun, Moon, MessageSquare, Sparkles, Brain, CheckCircle, X, Edit2, Trash2, MoreHorizontal, FileText, Mail, Github, Eye, EyeOff } from "lucide-react"
 import Link from "next/link"
 import Image from "next/image"
 
@@ -19,6 +19,308 @@ import { TypingIndicator } from "@/components/chat/typing-indicator"
 import { MouseRunningAnimation } from "@/components/ui/mouse-running-animation"
 import { AuthForm } from "@/components/auth/auth-form"
 import type { Message, Chat } from "@/lib/types"
+
+// MouseAI Animation Component
+const MouseAIIntroAnimation = () => {
+  const [currentStep, setCurrentStep] = useState(0);
+  const [emailText, setEmailText] = useState("");
+  const [passwordText, setPasswordText] = useState("");
+  const [userMessage, setUserMessage] = useState("");
+  const [aiResponse, setAiResponse] = useState("");
+  const [isMouseRunning, setIsMouseRunning] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
+
+  // Mouse icon - only using mouse3-nobg
+  const MouseIcon = ({ className }: { className: string }) => {
+    return (
+      <Image 
+        src="/mouse3-nobg.png"
+        alt="MouseAI" 
+        width={100}
+        height={100}
+        className={className}
+        onError={(e) => {
+          // Fallback to a simple div if image fails to load
+          e.currentTarget.style.display = 'none';
+        }}
+      />
+    );
+  };
+
+  useEffect(() => {
+    const runSequence = async () => {
+      // Reset everything for the loop
+      setCurrentStep(0);
+      setEmailText("");
+      setPasswordText("");
+      setUserMessage("");
+      setAiResponse("");
+      setIsMouseRunning(false);
+      setShowPassword(false);
+
+      // Step 1: Logo appears
+      setTimeout(() => setCurrentStep(1), 800);
+      
+      // Step 2: Title appears
+      setTimeout(() => setCurrentStep(2), 2000);
+      
+      // Step 3: Login window slides in, and title fades out for a smooth transition
+      setTimeout(() => setCurrentStep(3), 4000);
+      
+      // Step 4: Mock email typing
+      setTimeout(async () => {
+        setCurrentStep(4);
+        const email = "user@example.com";
+        for (let i = 0; i <= email.length; i++) {
+          setEmailText(email.slice(0, i));
+          await new Promise(resolve => setTimeout(resolve, 80));
+        }
+      }, 5000);
+      
+      // Step 5: Mock password typing
+      setTimeout(async () => {
+        const password = "password123";
+        for (let i = 0; i <= password.length; i++) {
+          setPasswordText("•".repeat(i));
+          await new Promise(resolve => setTimeout(resolve, 60));
+        }
+      }, 6500);
+      
+      // Step 6: Click sign in button
+      setTimeout(() => {
+        setCurrentStep(5);
+      }, 8000);
+      
+      // Step 7: Show chat text bar
+      setTimeout(() => {
+        setCurrentStep(6);
+      }, 9000);
+      
+      // Step 8: Mimic user typing a message
+      setTimeout(async () => {
+        const message = "What is Artificial Intelligence?";
+        setCurrentStep(7);
+        for (let i = 0; i <= message.length; i++) {
+          setUserMessage(message.slice(0, i));
+          await new Promise(resolve => setTimeout(resolve, 60));
+        }
+      }, 10000);
+      
+      // Step 9: Typing is done, send button turns green
+      setTimeout(() => {
+        setCurrentStep(8);
+      }, 12000);
+
+      // Step 10: User message appears, input bar slides up and disappears, bot starts "thinking"
+      setTimeout(() => {
+        setCurrentStep(9);
+        setIsMouseRunning(true);
+        
+        // Step 11: Show the AI's response after a delay
+        setTimeout(() => {
+          setIsMouseRunning(false);
+          setAiResponse("Artificial intelligence (AI) is the simulation of human intelligence in machines, enabling them to learn, reason, and solve problems.");
+          setCurrentStep(10);
+        }, 4000);
+      }, 12500);
+      
+      // Reset and restart the entire sequence
+      setTimeout(() => {
+        runSequence();
+      }, 20000);
+    };
+
+    runSequence();
+  }, []);
+
+  return (
+    <div className="w-full h-full flex items-center justify-center overflow-hidden">
+      <div className="w-full max-w-4xl mx-auto px-8 relative h-96 flex items-center justify-center">
+        
+        {/* Logo and Title Section - Fades out smoothly */}
+        <div className={`absolute inset-0 flex flex-col items-center justify-center transition-opacity duration-500 ease-out ${currentStep >= 3 ? 'opacity-0' : 'opacity-100'}`}>
+            {/* Logo Animation */}
+            <div className={`transition-all duration-1000 ease-out ${
+              currentStep >= 1 
+                ? 'opacity-100 scale-100 translate-y-0' 
+                : 'opacity-0 scale-50 translate-y-8'
+            }`}>
+              <div className="w-24 h-24 mb-8">
+                <MouseIcon className="w-full h-full drop-shadow-lg" />
+              </div>
+            </div>
+            
+            {/* Title Animation */}
+            <div className={`transition-all duration-1000 ease-out delay-500 ${
+              currentStep >= 2 
+                ? 'opacity-100 translate-y-0' 
+                : 'opacity-0 translate-y-4'
+            }`}>
+              <h1 className="text-5xl font-bold text-gray-900 text-center tracking-tight">
+                MouseAI
+              </h1>
+              <div className="h-1 w-20 bg-black mx-auto mt-4 rounded-full"></div>
+            </div>
+        </div>
+        
+        {/* Login Demo Window - Slides up smoothly, no shadow */}
+        {currentStep >= 3 && currentStep < 6 && (
+          <div className="flex items-center justify-center h-full">
+            <div className={`bg-white rounded-2xl p-8 w-full max-w-sm border border-gray-100 transition-all duration-1500 ease-out ${
+              currentStep >= 3 
+                ? 'opacity-100 scale-100 translate-y-0' 
+                : 'opacity-0 scale-95 translate-y-12'
+            }`}>
+              
+              {/* Email Field */}
+              <div className="mb-4">
+                <label className="block text-sm font-medium text-gray-700 mb-2">Email</label>
+                <input
+                  type="email"
+                  value={emailText}
+                  placeholder="Enter your email"
+                  className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-black focus:border-transparent transition-all duration-200"
+                  readOnly
+                />
+              </div>
+              
+              {/* Password Field */}
+              <div className="mb-6">
+                <label className="block text-sm font-medium text-gray-700 mb-2">Password</label>
+                <div className="relative">
+                  <input
+                    type={showPassword ? "text" : "password"}
+                    value={showPassword ? "password123" : passwordText}
+                    placeholder="Enter your password"
+                    className="w-full px-4 py-3 pr-12 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-black focus:border-transparent transition-all duration-200"
+                    readOnly
+                  />
+                  <button
+                    type="button"
+                    className="absolute inset-y-0 right-0 pr-4 flex items-center text-gray-400 hover:text-gray-600"
+                    onClick={() => setShowPassword(!showPassword)}
+                  >
+                    {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                  </button>
+                </div>
+              </div>
+              
+              {/* Sign In Button */}
+              <button className={`w-full py-3 px-4 rounded-xl text-white font-medium transition-all duration-300 ${
+                currentStep >= 5 
+                  ? 'bg-green-600 transform scale-105 shadow-lg' 
+                  : 'bg-black hover:bg-gray-800 shadow-md'
+              }`}>
+                {currentStep >= 5 ? '✓ Welcome!' : 'Sign in'}
+              </button>
+            </div>
+          </div>
+        )}
+        
+        {/* Chat Demo Interface */}
+        {currentStep >= 6 && (
+          <div className={`w-full max-w-4xl transition-all duration-1000 ease-out flex flex-col justify-center ${
+            currentStep >= 6 
+              ? 'opacity-100 scale-100' 
+              : 'opacity-0 scale-95'
+          }`}>
+            
+            {/* Text Input Bar - Slides up and disappears after sending */}
+            <div className={`flex justify-center transition-all duration-700 ease-in-out ${currentStep >= 9 ? 'opacity-0 -translate-y-20 h-0' : 'opacity-100 translate-y-0 h-24'}`}>
+              <div className="flex space-x-3 w-full max-w-2xl items-center">
+                <input
+                  type="text"
+                  placeholder="Ask me anything..."
+                  className="flex-1 border border-gray-300 rounded-2xl px-6 py-4 text-lg focus:outline-none focus:ring-2 focus:ring-black focus:border-transparent transition-all duration-200 shadow-sm"
+                  value={currentStep >= 7 ? userMessage : ''}
+                  readOnly
+                />
+                <button className={`text-white p-4 rounded-2xl transition-all duration-300 shadow-sm ${
+                  currentStep >= 8 
+                    ? 'bg-green-600 transform scale-105' 
+                    : 'bg-black hover:bg-gray-800'
+                }`}>
+                  <Send className="w-6 h-6" />
+                </button>
+              </div>
+            </div>
+            
+            {/* Messages Area - Slides up to fill space */}
+            <div className={`transition-transform duration-700 ease-in-out ${currentStep >= 9 ? '-translate-y-24' : 'translate-y-0'}`}>
+              {currentStep >= 9 && (
+                <div className="space-y-6 max-w-4xl mx-auto animate-slide-up">
+                  
+                  {/* User Message */}
+                  <div className="flex justify-end animate-slide-in">
+                    <div className="bg-black text-white rounded-2xl px-6 py-4 max-w-2xl shadow-sm">
+                      <p className="text-lg">{userMessage}</p>
+                    </div>
+                  </div>
+                  
+                  {/* AI Response with Mouse Icon */}
+                  <div className="flex items-start space-x-4">
+                    <div className="w-12 h-12 flex-shrink-0 mt-2">
+                      <MouseIcon 
+                        className={`w-full h-full transition-all duration-300 ${
+                          isMouseRunning ? 'animate-pulse' : ''
+                        }`}
+                      />
+                    </div>
+                    <div className="flex-1">
+                      {currentStep >= 10 ? (
+                        <div className="bg-gray-100 rounded-2xl px-6 py-4 animate-fade-in shadow-sm">
+                          <p className="text-lg text-gray-900 leading-relaxed">{aiResponse}</p>
+                        </div>
+                      ) : (
+                        <div className="flex items-center space-x-3 text-gray-500 mt-4">
+                          <div className="flex space-x-1">
+                            <div className="w-3 h-3 bg-gray-400 rounded-full animate-bounce"></div>
+                            <div className="w-3 h-3 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '0.1s' }}></div>
+                            <div className="w-3 h-3 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></div>
+                          </div>
+                          <span className="text-lg">MouseAI is thinking...</span>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+      </div>
+
+      <style jsx>{`
+        @keyframes fade-in {
+          from { opacity: 0; transform: translateY(10px); }
+          to { opacity: 1; transform: translateY(0); }
+        }
+        
+        @keyframes slide-in {
+          from { opacity: 0; transform: translateX(20px); }
+          to { opacity: 1; transform: translateX(0); }
+        }
+        
+        @keyframes slide-up {
+          from { opacity: 0; transform: translateY(30px); }
+          to { opacity: 1; transform: translateY(0); }
+        }
+        
+        .animate-fade-in {
+          animation: fade-in 0.6s ease-out;
+        }
+        
+        .animate-slide-in {
+          animation: slide-in 0.4s ease-out;
+        }
+        
+        .animate-slide-up {
+          animation: slide-up 0.6s ease-out;
+        }
+      `}</style>
+    </div>
+  );
+};
 
 export default function ChatApp() {
   const [messages, setMessages] = useState<Message[]>([])
@@ -480,33 +782,9 @@ export default function ChatApp() {
           </div>
 
           <div className="flex min-h-screen items-center relative z-10">
-            {/* Left Side - Content */}
+            {/* Left Side - MouseAI Animation */}
             <div className="flex-1 flex items-center justify-center p-8">
-              <div className="max-w-md space-y-6">
-                <div className="space-y-4">
-                  <h2 className="text-4xl font-bold leading-tight text-gray-900 dark:text-black">
-                    AI-Powered Intelligence at Your Fingertips
-                  </h2>
-                  <p className="text-lg text-muted-foreground leading-relaxed">
-                    Experience the next generation of AI assistance with MouseAI. Smart, fast, and intuitive AI that adapts to your workflow.
-                  </p>
-                </div>
-                
-                <div className="space-y-4">
-                  <div className="flex items-center gap-3">
-                    <Brain className="w-5 h-5 text-primary" />
-                    <span className="text-sm">Intelligent conversation understanding</span>
-                  </div>
-                  <div className="flex items-center gap-3">
-                    <Sparkles className="w-5 h-5 text-primary" />
-                    <span className="text-sm">Real-time responses</span>
-                  </div>
-                  <div className="flex items-center gap-3">
-                    <MessageCircle className="w-5 h-5 text-primary" />
-                    <span className="text-sm">Seamless chat experience</span>
-                  </div>
-                </div>
-              </div>
+              <MouseAIIntroAnimation />
             </div>
 
             {/* Right Side - Login Form */}
