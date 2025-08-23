@@ -119,7 +119,7 @@ const MouseAIIntroAnimation = () => {
         // Step 11: Show the AI's response after a delay
         setTimeout(() => {
           setIsMouseRunning(false);
-          setAiResponse("Artificial intelligence (AI) is the simulation of human intelligence in machines, enabling them to learn, reason, and solve problems.");
+          setAiResponse("Artificial intelligence (AI) is the simulation of human intelligence in machines, enabling them to learn, reason, and solve problems");
           setCurrentStep(10);
         }, 4000);
       }, 12500);
