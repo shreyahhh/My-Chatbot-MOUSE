@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { ScrollArea } from "@/components/ui/scroll-area"
-import { Send, MessageCircle, LogOut, Sun, Moon, MessageSquare, Sparkles, Brain, CheckCircle, X, Edit2, Trash2, MoreHorizontal, FileText, Mail, Github, Eye, EyeOff } from "lucide-react"
+import { Send, MessageCircle, LogOut, Sun, Moon, MessageSquare, Sparkles, Brain, CheckCircle, X, Edit2, Trash2, MoreHorizontal, FileText, Mail, Github, Eye, EyeOff, Paperclip } from "lucide-react"
 import Link from "next/link"
 import Image from "next/image"
 
@@ -19,6 +19,82 @@ import { TypingIndicator } from "@/components/chat/typing-indicator"
 import { MouseRunningAnimation } from "@/components/ui/mouse-running-animation"
 import { AuthForm } from "@/components/auth/auth-form"
 import type { Message, Chat } from "@/lib/types"
+
+// Typing animation component for empty chat
+const TypingAnimation = ({ messages, onComplete }: { messages: string[], onComplete: () => void }) => {
+  const [displayedText, setDisplayedText] = useState("");
+  const [currentMessageIndex, setCurrentMessageIndex] = useState(0);
+  const [isTyping, setIsTyping] = useState(true);
+  const [showCursor, setShowCursor] = useState(true);
+
+  useEffect(() => {
+    if (currentMessageIndex >= messages.length) {
+      onComplete();
+      return;
+    }
+
+    const currentMessage = messages[currentMessageIndex];
+    let currentCharIndex = 0;
+    
+    // Typing effect
+    const typeChar = () => {
+      if (currentCharIndex <= currentMessage.length) {
+        setDisplayedText(currentMessage.substring(0, currentCharIndex));
+        currentCharIndex++;
+        setTimeout(typeChar, Math.random() * 30 + 30); // Random typing speed
+      } else {
+        // Pause before deleting
+        setTimeout(() => {
+          setIsTyping(false);
+          
+          // Delete effect
+          const deleteChar = () => {
+            if (currentCharIndex >= 0) {
+              setDisplayedText(currentMessage.substring(0, currentCharIndex));
+              currentCharIndex--;
+              setTimeout(deleteChar, 20); // Faster deletion
+            } else {
+              // Move to next message
+              setCurrentMessageIndex(prev => prev + 1);
+              setIsTyping(true);
+            }
+          };
+          
+          // Only delete if not the last message
+          if (currentMessageIndex < messages.length - 1) {
+            setTimeout(deleteChar, 1000);
+          } else {
+            // For the last message, keep it displayed
+            onComplete();
+          }
+        }, 2000); // Pause before deleting
+      }
+    };
+
+    const typingTimer = setTimeout(typeChar, 500); // Initial delay
+    
+    // Cursor blink effect
+    const cursorInterval = setInterval(() => {
+      setShowCursor(prev => !prev);
+    }, 500);
+
+    return () => {
+      clearTimeout(typingTimer);
+      clearInterval(cursorInterval);
+    };
+  }, [currentMessageIndex, messages, onComplete]);
+
+  return (
+    <div className="bg-muted/50 dark:bg-muted/20 rounded-lg p-4 max-w-2xl mx-auto text-center">
+      <div className="inline-flex items-center">
+        <span className="text-muted-foreground">
+          {displayedText}
+          <span className={`inline-block w-2 h-6 bg-primary ml-1 transition-opacity ${showCursor && isTyping ? 'opacity-100' : 'opacity-0'}`}></span>
+        </span>
+      </div>
+    </div>
+  );
+};
 
 // MouseAI Animation Component
 const MouseAIIntroAnimation = () => {
@@ -333,6 +409,14 @@ export default function ChatApp() {
   const [editingChatTitle, setEditingChatTitle] = useState("")
   const [deletingChatId, setDeletingChatId] = useState<string>("")
   const [deletingChatTitle, setDeletingChatTitle] = useState("")
+  const [typingAnimationComplete, setTypingAnimationComplete] = useState(false);
+  const [showTypingAnimation, setShowTypingAnimation] = useState(true);
+  
+  // Sample messages for the typing animation
+  const typingMessages = [
+    "Hello, how can I help you today?",
+    "Help me write a story on a robot"
+  ];
 
   // NHost authentication
   const { isAuthenticated, isLoading: authLoading } = useAuthenticationStatus()
@@ -708,6 +792,14 @@ export default function ChatApp() {
       localStorage.setItem('theme', isDarkMode ? 'dark' : 'light')
     }
   }, [isDarkMode])
+  
+  // Reset typing animation when chat changes
+  useEffect(() => {
+    if (!currentChatId) {
+      setShowTypingAnimation(true);
+      setTypingAnimationComplete(false);
+    }
+  }, [currentChatId]);
 
   // Prevent hydration issues by not rendering until mounted
   if (!mounted) {
@@ -1009,23 +1101,52 @@ export default function ChatApp() {
                   <MessageBubble key={message.id} message={message} />
                 ))}
                 {isLoading && <TypingIndicator />}
+                {messages.length === 0 && showTypingAnimation && (
+                  <TypingAnimation 
+                    messages={typingMessages} 
+                    onComplete={() => {
+                      setTypingAnimationComplete(true);
+                      setShowTypingAnimation(false);
+                    }} 
+                  />
+                )}
                 <div ref={messagesEndRef} />
               </div>
             </ScrollArea>
 
             <div className="border-t p-4">
-              <div className="flex gap-2">
-                <Input
-                  value={inputMessage}
-                  onChange={(e) => setInputMessage(e.target.value)}
-                  onKeyPress={handleKeyPress}
-                  placeholder="Type your message..."
-                  disabled={isLoading}
-                  className="flex-1"
-                />
-                <Button onClick={sendMessage} disabled={isLoading || !inputMessage.trim()} size="icon">
-                  <Send className="w-4 h-4" />
+              <div className="flex gap-2 items-center">
+                <Button 
+                  type="button" 
+                  variant="ghost" 
+                  size="icon" 
+                  className="h-10 w-10 text-muted-foreground hover:text-foreground"
+                  title="Attach files"
+                  onClick={() => {
+                    // TODO: Implement file attachment functionality
+                    console.log('Attach files clicked');
+                  }}
+                >
+                  <Paperclip className="h-5 w-5" />
                 </Button>
+                <div className="flex-1 flex gap-2">
+                  <Input
+                    value={inputMessage}
+                    onChange={(e) => setInputMessage(e.target.value)}
+                    onKeyPress={handleKeyPress}
+                    placeholder="Type your message..."
+                    disabled={isLoading}
+                    className="flex-1"
+                  />
+                  <Button 
+                    onClick={sendMessage} 
+                    disabled={isLoading || !inputMessage.trim()} 
+                    size="icon"
+                    className="flex-shrink-0"
+                  >
+                    <Send className="w-4 h-4" />
+                  </Button>
+                </div>
               </div>
             </div>
           </>

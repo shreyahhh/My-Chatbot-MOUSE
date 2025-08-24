@@ -40,6 +40,48 @@
   --sidebar-ring: oklch(0.708 0 0);
 }
 
+/* Force light theme for auth pages */
+body.auth-page,
+body.auth-page * {
+  --background: oklch(1 0 0) !important;
+  --foreground: oklch(0.145 0 0) !important;
+  --card: oklch(1 0 0) !important;
+  --card-foreground: oklch(0.145 0 0) !important;
+  --popover: oklch(1 0 0) !important;
+  --popover-foreground: oklch(0.145 0 0) !important;
+  --primary: oklch(0.205 0 0) !important;
+  --primary-foreground: oklch(1 0 0) !important;
+  --secondary: oklch(0.97 0 0) !important;
+  --secondary-foreground: oklch(0.205 0 0) !important;
+  --muted: oklch(0.97 0 0) !important;
+  --muted-foreground: oklch(0.556 0 0) !important;
+  --accent: oklch(0.97 0 0) !important;
+  --accent-foreground: oklch(0.205 0 0) !important;
+  --border: oklch(0.922 0 0) !important;
+  --input: oklch(0.922 0 0) !important;
+  --ring: oklch(0.708 0 0) !important;
+  --sidebar: oklch(1 0 0) !important;
+  --sidebar-foreground: oklch(0.145 0 0) !important;
+  --sidebar-primary: oklch(0.205 0 0) !important;
+  --sidebar-primary-foreground: oklch(1 0 0) !important;
+  --sidebar-accent: oklch(0.97 0 0) !important;
+  --sidebar-accent-foreground: oklch(0.205 0 0) !important;
+  --sidebar-border: oklch(0.922 0 0) !important;
+  --sidebar-ring: oklch(0.708 0 0) !important;
+  background-color: white !important;
+  color: oklch(0.145 0 0) !important;
+}
+
+/* Ensure dark theme doesn't override our auth page styles */
+body.auth-page.dark,
+body.auth-page .dark,
+body.auth-page .dark * {
+  --background: oklch(1 0 0) !important;
+  --foreground: oklch(0.145 0 0) !important;
+  background-color: white !important;
+  color: oklch(0.145 0 0) !important;
+}
+
 .dark {
   --background: oklch(0.145 0 0);
   --foreground: oklch(0.985 0 0);

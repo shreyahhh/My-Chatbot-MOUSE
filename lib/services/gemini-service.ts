@@ -2,6 +2,7 @@ import { GoogleGenerativeAI } from '@google/generative-ai'
 
 // Initialize Gemini AI
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || '')
+const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' })
 
 /**
  * Generates an intelligent chat title using Gemini AI
@@ -117,5 +118,81 @@ function generateFallbackTitle(firstMessage: string): string {
  * Check if Gemini API is configured
  */
 export function isGeminiConfigured(): boolean {
-  return !!(process.env.GEMINI_API_KEY && process.env.GEMINI_API_KEY !== 'your-gemini-api-key-here')
+  const apiKey = process.env.GEMINI_API_KEY
+  return !!(apiKey && apiKey !== 'your-gemini-api-key-here')
+}
+
+export async function processFileWithGemini(file: File, userMessage?: string): Promise<string> {
+  try {
+    // Convert file to Gemini format
+    const fileData = await fileToGenerativePart(file)
+    
+    // Create analysis prompt
+    const prompt = createFileAnalysisPrompt(file, userMessage)
+    
+    const result = await model.generateContent([prompt, fileData])
+    return result.response.text()
+  } catch (error) {
+    console.error('Error processing file:', error)
+    throw new Error(`Failed to process ${file.name}`)
+  }
+}
+
+async function fileToGenerativePart(file: File) {
+  const bytes = await file.arrayBuffer()
+  const base64 = Buffer.from(bytes).toString('base64')
+  
+  return {
+    inlineData: {
+      data: base64,
+      mimeType: file.type
+    }
+  }
+}
+
+function createFileAnalysisPrompt(file: File, userMessage?: string): string {
+  const fileType = file.type.toLowerCase()
+  const fileName = file.name
+  
+  let prompt = ''
+  
+  if (fileType.startsWith('image/')) {
+    prompt = `Analyze this image (${fileName}) and describe what you see in detail.`
+  } else if (fileType === 'application/pdf') {
+    prompt = `Analyze this PDF document (${fileName}) and provide a comprehensive summary.`
+  } else if (fileType.includes('spreadsheet') || fileType.includes('excel')) {
+    prompt = `Analyze this spreadsheet (${fileName}) and describe the data structure and key insights.`
+  } else if (fileType.includes('document') || fileType.includes('word')) {
+    prompt = `Analyze this document (${fileName}) and summarize the main content and topics.`
+  } else {
+    prompt = `Analyze this file (${fileName}) and extract any relevant information.`
+  }
+  
+  if (userMessage?.trim()) {
+    prompt += `\n\nSpecific request: "${userMessage}"`
+  }
+  
+  return prompt
+}
+
+export function validateFile(file: File): { valid: boolean; error?: string } {
+  const MAX_SIZE = 20 * 1024 * 1024 // 20MB
+  
+  if (file.size > MAX_SIZE) {
+    return { valid: false, error: `File too large (${(file.size/1024/1024).toFixed(1)}MB). Max 20MB.` }
+  }
+  
+  const supportedTypes = [
+    'image/jpeg', 'image/png', 'image/gif', 'image/webp',
+    'application/pdf',
+    'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+    'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+    'text/plain', 'text/csv'
+  ]
+  
+  if (!supportedTypes.includes(file.type)) {
+    return { valid: false, error: `Unsupported file type: ${file.type}` }
+  }
+  
+  return { valid: true }
 }
