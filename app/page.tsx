@@ -404,7 +404,7 @@ export default function ChatApp() {
   const [inputMessage, setInputMessage] = useState("")
   const [isLoading, setIsLoading] = useState(false)
   const [mounted, setMounted] = useState(false)
-  const [isDarkMode, setIsDarkMode] = useState(false)
+  const [isDarkMode, setIsDarkMode] = useState(false) // Default state is light mode
   const [editingChatId, setEditingChatId] = useState<string>("")
   const [editingChatTitle, setEditingChatTitle] = useState("")
   const [deletingChatId, setDeletingChatId] = useState<string>("")
@@ -412,20 +412,17 @@ export default function ChatApp() {
   const [typingAnimationComplete, setTypingAnimationComplete] = useState(false);
   const [showTypingAnimation, setShowTypingAnimation] = useState(true);
   
-  // Sample messages for the typing animation
   const typingMessages = [
     "Hello, how can I help you today?",
     "Help me write a story on a robot"
   ];
 
-  // NHost authentication
   const { isAuthenticated, isLoading: authLoading } = useAuthenticationStatus()
   const user = useUserData()
   const { signOut } = useSignOut()
 
   const messagesEndRef = useRef<HTMLDivElement>(null)
 
-  // Fix hydration by ensuring client-side only rendering after mount
   useEffect(() => {
     setMounted(true)
   }, [])
@@ -434,147 +431,132 @@ export default function ChatApp() {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" })
   }
 
-  useEffect(() => {
-    scrollToBottom()
-  }, [messages])
+  useEffect(scrollToBottom, [messages])
 
   useEffect(() => {
     if (isAuthenticated && user) {
-      console.log("[NHost] User authenticated:", user)
       loadChats()
     }
   }, [isAuthenticated, user])
 
-  // Debug NHost connection
+  // --- START: CONSOLIDATED THEME MANAGEMENT ---
   useEffect(() => {
-    console.log("[NHost] Client configuration:")
-    console.log("- Subdomain:", process.env.NEXT_PUBLIC_NHOST_SUBDOMAIN)
-    console.log("- Region:", process.env.NEXT_PUBLIC_NHOST_REGION)
-    console.log("- Auth status:", isAuthenticated)
-    console.log("- Auth loading:", authLoading)
-  }, [isAuthenticated, authLoading])
+    if (!mounted) return; // Wait for the component to mount to avoid hydration errors
+
+    if (!isAuthenticated) {
+      // ALWAYS set light mode for the login page
+      document.documentElement.classList.remove('dark');
+      setIsDarkMode(false);
+    } else {
+      // User is logged in, check their saved preference
+      const savedTheme = localStorage.getItem('theme');
+      if (savedTheme === 'dark') {
+        document.documentElement.classList.add('dark');
+        setIsDarkMode(true);
+      } else {
+        // Default to light mode if no theme is saved
+        document.documentElement.classList.remove('dark');
+        setIsDarkMode(false);
+      }
+    }
+  }, [isAuthenticated, mounted]);
+  
+  const toggleTheme = () => {
+    const newIsDarkMode = !isDarkMode;
+    setIsDarkMode(newIsDarkMode);
+    if (newIsDarkMode) {
+      document.documentElement.classList.add('dark');
+      localStorage.setItem('theme', 'dark');
+    } else {
+      document.documentElement.classList.remove('dark');
+      localStorage.setItem('theme', 'light');
+    }
+  };
+  // --- END: CONSOLIDATED THEME MANAGEMENT ---
+
+  useEffect(() => {
+    if (!currentChatId) {
+      setShowTypingAnimation(true);
+      setTypingAnimationComplete(false);
+    }
+  }, [currentChatId]);
 
   const loadChats = async () => {
     try {
-      console.log("[v0] Loading chats...")
       const data = await makeGraphQLRequest(QUERIES.GET_CHATS)
       setChats(data.chats)
-
       if (!currentChatId && data.chats.length > 0) {
         setCurrentChatId(data.chats[0].id)
         loadMessages(data.chats[0].id)
       }
     } catch (error) {
-      console.error("[v0] Error loading chats:", error)
+      console.error("Error loading chats:", error)
     }
   }
 
   const loadMessages = async (chatId: string) => {
     try {
-      console.log("[Chat] Loading complete history for chat:", chatId)
-      
       const data = await makeGraphQLRequest(QUERIES.GET_MESSAGES, { chat_id: chatId })
-      
-      if (data.messages) {
-        // Ensure both user and assistant messages are properly formatted
-        const formattedMessages = data.messages.map((msg: any) => ({
-          id: msg.id,
-          content: msg.content,
-          role: msg.role, // This should be either "user" or "assistant"
-          created_at: msg.created_at
-        }))
-
-        console.log("[Chat] Loaded", formattedMessages.length, "messages:", formattedMessages)
-        setMessages(formattedMessages)
-      } else {
-        console.log("[Chat] No messages found for chat:", chatId)
-        setMessages([])
-      }
+      setMessages(data.messages || [])
     } catch (error) {
-      console.error("[Chat] Error loading messages:", error)
-      setMessages([]) // Clear messages on error
+      console.error("Error loading messages:", error)
+      setMessages([])
     }
   }
 
   const createNewChat = async (firstMessage?: string) => {
     try {
-      // Start with a placeholder title for immediate UI feedback
       const placeholderTitle = firstMessage ? "Generating title..." : `Chat ${new Date().toLocaleTimeString()}`
-      console.log("[v0] Creating new chat with placeholder title:", placeholderTitle)
-
       const data = await makeGraphQLRequest(MUTATIONS.CREATE_CHAT, { title: placeholderTitle })
       const newChat = data.insert_chats_one
-
       setChats((prev) => [newChat, ...prev])
       setCurrentChatId(newChat.id)
       setMessages([])
-
-      // Generate AI title in the background if we have a first message
-      if (firstMessage && firstMessage.trim()) {
+      if (firstMessage) {
         generateChatTitleAsync(newChat.id, firstMessage)
       }
-
       return newChat.id
     } catch (error) {
-      console.error("[v0] Error creating chat:", error)
+      console.error("Error creating chat:", error)
       return null
     }
   }
 
-  // Generate title asynchronously to avoid blocking UI
   const generateChatTitleAsync = async (chatId: string, firstMessage: string) => {
     try {
-      console.log("[App] Starting async title generation for chat:", chatId)
-      console.log("[App] First message:", firstMessage.substring(0, 50) + '...')
-      
       const aiTitle = await generateChatTitle(firstMessage)
-      console.log("[App] Generated AI title:", aiTitle)
-      
-      if (aiTitle && aiTitle !== "Generating title..." && aiTitle.trim() !== "") {
-        console.log("[App] Updating chat title to:", aiTitle)
+      if (aiTitle && aiTitle.trim() !== "") {
         await updateChatTitle(chatId, aiTitle)
       } else {
-        console.log("[App] AI title generation returned empty or placeholder, using fallback")
-        const fallbackTitle = firstMessage.length > 30 
-          ? firstMessage.substring(0, 30) + "..."
-          : firstMessage
+        const fallbackTitle = firstMessage.substring(0, 30) + (firstMessage.length > 30 ? "..." : "")
         await updateChatTitle(chatId, fallbackTitle)
       }
     } catch (error) {
-      console.error("[App] Error in async title generation:", error)
-      // Use fallback title if AI generation fails
-      const fallbackTitle = firstMessage.length > 30 
-        ? firstMessage.substring(0, 30) + "..."
-        : firstMessage
+      console.error("Error in async title generation:", error)
+      const fallbackTitle = firstMessage.substring(0, 30) + (firstMessage.length > 30 ? "..." : "")
       await updateChatTitle(chatId, fallbackTitle)
     }
   }
 
   const updateChatTitle = async (chatId: string, title: string) => {
     try {
-      console.log("[v0] Updating chat title:", title)
       await makeGraphQLRequest(MUTATIONS.UPDATE_CHAT_TITLE, { id: chatId, title })
       setChats((prev) => prev.map((chat) => (chat.id === chatId ? { ...chat, title } : chat)))
     } catch (error) {
-      console.error("[v0] Error updating chat title:", error)
+      console.error("Error updating chat title:", error)
     }
   }
 
   const deleteChat = async (chatId: string) => {
     try {
-      console.log("[v0] Deleting chat:", chatId)
       await makeGraphQLRequest(MUTATIONS.DELETE_CHAT, { id: chatId })
-      
-      // Remove chat from local state
       setChats((prev) => prev.filter((chat) => chat.id !== chatId))
-      
-      // If we deleted the current chat, clear the chat view
       if (currentChatId === chatId) {
         setCurrentChatId("")
         setMessages([])
       }
     } catch (error) {
-      console.error("[v0] Error deleting chat:", error)
+      console.error("Error deleting chat:", error)
     }
   }
 
@@ -585,7 +567,6 @@ export default function ChatApp() {
 
   const saveEditedChatTitle = async () => {
     if (!editingChatTitle.trim()) return
-    
     await updateChatTitle(editingChatId, editingChatTitle.trim())
     setEditingChatId("")
     setEditingChatTitle("")
@@ -616,134 +597,46 @@ export default function ChatApp() {
 
   const sendMessage = async () => {
     if (!inputMessage.trim() || isLoading) return
-
     setIsLoading(true)
     const userMessage = inputMessage.trim()
     setInputMessage("")
-
-    // Create new chat if none selected
     let activeChatId = currentChatId
     if (!activeChatId) {
-      const newChatId = await createNewChat(userMessage)
-      if (!newChatId) {
+      activeChatId = await createNewChat(userMessage)
+      if (!activeChatId) {
         setIsLoading(false)
         return
       }
-      activeChatId = newChatId
     }
-
     try {
-      // First, save the user message to the database
-      console.log("[Chat] Saving user message to database:", userMessage)
       const userMessageResult = await makeGraphQLRequest(MUTATIONS.INSERT_MESSAGE, {
         chat_id: activeChatId,
         content: userMessage,
         role: 'user'
       })
-
-      console.log("[Chat] User message saved:", userMessageResult)
-
-      // Add user message to UI with the ID from database
-      let userMsg: Message
-      if (userMessageResult.insert_messages_one) {
-        userMsg = {
-          id: userMessageResult.insert_messages_one.id,
-          content: userMessageResult.insert_messages_one.content,
-          role: userMessageResult.insert_messages_one.role,
-          created_at: userMessageResult.insert_messages_one.created_at
-        }
-      } else {
-        // Fallback if database insert fails
-        userMsg = {
-          id: `user-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
-          content: userMessage,
-          role: "user",
-          created_at: new Date().toISOString(),
-        }
+      const userMsg = userMessageResult.insert_messages_one || {
+        id: `user-${Date.now()}`,
+        content: userMessage,
+        role: "user",
+        created_at: new Date().toISOString(),
       }
       setMessages((prev) => [...prev, userMsg])
-
-      // Then, get the bot response
-      console.log("[v0] Getting bot response for:", userMessage)
-      console.log("[v0] Using chat ID:", activeChatId)
-
       const query = `mutation SendMessage { sendMessage(chat_id: "${activeChatId}", message: "${userMessage.replace(/"/g, '\\"')}") { id chat_id content role created_at } }`
-
       const result = await makeGraphQLRequest(query)
-      console.log("[v0] GraphQL response (direct data):", result)
-      console.log("[v0] Result structure:", JSON.stringify(result, null, 2))
-
-      // Since makeGraphQLRequest returns data directly, we access sendMessage directly
-      console.log("[v0] About to access result.sendMessage")
-      console.log("[v0] result.sendMessage exists:", !!result.sendMessage)
-
-      // Add defensive checks
-      if (!result || !result.sendMessage) {
-        console.error("[v0] Missing sendMessage in result:", result)
+      if (!result?.sendMessage) {
         throw new Error("Invalid response structure from server")
       }
-
-      const botResponse = result.sendMessage
-      const cleanBotResponse = {
-        ...botResponse,
-        content: botResponse.content?.trim() || "",
-      }
-
-      setMessages((prev) => [...prev, cleanBotResponse])
-
-      // Update chat title if it's auto-generated (async) OR if this is the first message
+      const botResponse = { ...result.sendMessage, content: result.sendMessage.content?.trim() || "" }
+      setMessages((prev) => [...prev, botResponse])
       const currentChat = chats.find((chat) => chat.id === activeChatId)
-      if (currentChat) {
-        // Auto-generate title if:
-        // 1. The title is auto-generated (placeholder), OR
-        // 2. This is the first real message (messages length = 2: user + bot)
-        const shouldGenerateTitle = 
-          isAutoGeneratedTitle(currentChat.title) || 
-          messages.length === 1 // Only user message exists at this point
-        
-        if (shouldGenerateTitle) {
-          console.log("[v0] Triggering AI title generation for first message")
-          generateChatTitleAsync(activeChatId, userMessage)
-        }
+      if (currentChat && (isAutoGeneratedTitle(currentChat.title) || messages.length === 1)) {
+        generateChatTitleAsync(activeChatId, userMessage)
       }
     } catch (error) {
-      console.error("[v0] Error sending message:", error)
-
-      let errorMessage = "Sorry, there was an error sending your message. Please try again."
-
-      if (
-        typeof error === "object" &&
-        error !== null &&
-        "message" in error &&
-        typeof (error as any).message === "string"
-      ) {
-        const msg = (error as any).message as string
-        
-        // Check for webhook-related errors
-        if (
-          msg.includes("not a valid json response from webhook") ||
-          msg.includes("webhook") ||
-          msg.includes("invalid JSON")
-        ) {
-          const fallbackMsg: Message = {
-            id: `fallback-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
-            content:
-              "I apologize, but I'm currently experiencing technical difficulties with my response system. The webhook service that processes messages is returning empty responses. Please try again in a few moments, or contact support if the issue persists.\n\nIn the meantime, I'd be happy to help once the technical issue is resolved!",
-            role: "assistant",
-            created_at: new Date().toISOString(),
-          }
-          setMessages((prev) => [...prev, fallbackMsg])
-          return
-        } else if (msg.includes("network") || msg.includes("fetch")) {
-          errorMessage = "Network connection issue. Please check your internet connection and try again."
-        } else if (msg.includes("timeout")) {
-          errorMessage = "The request timed out. Please try again with a shorter message."
-        }
-      }
-
+      console.error("Error sending message:", error)
       const errorMsg: Message = {
-        id: `error-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
-        content: errorMessage,
+        id: `error-${Date.now()}`,
+        content: "Sorry, there was an error sending your message. Please try again.",
         role: "assistant",
         created_at: new Date().toISOString(),
       }
@@ -767,55 +660,9 @@ export default function ChatApp() {
     setCurrentChatId("")
   }
 
-  const toggleTheme = () => {
-    setIsDarkMode(!isDarkMode)
-    if (typeof window !== 'undefined') {
-      document.documentElement.classList.toggle('dark', !isDarkMode)
-    }
-  }
-
-  // Initialize theme from localStorage
-  useEffect(() => {
-    if (typeof window !== 'undefined') {
-      const savedTheme = localStorage.getItem('theme')
-      const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches
-      const shouldBeDark = savedTheme === 'dark' || (!savedTheme && prefersDark)
-      
-      setIsDarkMode(shouldBeDark)
-      document.documentElement.classList.toggle('dark', shouldBeDark)
-    }
-  }, [])
-
-  // Save theme to localStorage
-  useEffect(() => {
-    if (typeof window !== 'undefined') {
-      localStorage.setItem('theme', isDarkMode ? 'dark' : 'light')
-    }
-  }, [isDarkMode])
-  
-  // Reset typing animation when chat changes
-  useEffect(() => {
-    if (!currentChatId) {
-      setShowTypingAnimation(true);
-      setTypingAnimationComplete(false);
-    }
-  }, [currentChatId]);
-
-  // Prevent hydration issues by not rendering until mounted
-  if (!mounted) {
+  if (!mounted || authLoading) {
     return (
-      <div className="flex items-center justify-center min-h-screen bg-background">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
-          <p>Initializing...</p>
-        </div>
-      </div>
-    )
-  }
-
-  if (authLoading) {
-    return (
-      <div className="flex items-center justify-center min-h-screen bg-background">
+      <div className="flex items-center justify-center min-h-screen">
         <div className="text-center">
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
           <p>Loading...</p>
@@ -827,23 +674,18 @@ export default function ChatApp() {
   if (!isAuthenticated) {
     return (
       <>
-        <div className="min-h-screen relative overflow-hidden" style={{ background: '#ffffff' }}>
-          {/* Subtle dotted background pattern - Behind everything */}
+        <div className="min-h-screen relative overflow-hidden bg-white">
           <div 
             className="absolute inset-0 z-0"
             style={{
-              background: `
-                radial-gradient(circle, #e5e7eb 0.8px, transparent 0.8px)
-              `,
+              background: `radial-gradient(circle, #e5e7eb 0.8px, transparent 0.8px)`,
               backgroundSize: '18px 18px',
               backgroundPosition: '0 0'
             }}
           />
           
-          {/* Header */}
           <div className="absolute top-0 left-0 right-0 z-30 bg-white/95 backdrop-blur-md border-b border-gray-200">
             <div className="flex items-center justify-between p-6">
-              {/* Logo and Brand */}
               <div className="flex items-center gap-3">
                 <Image
                   src="/mouse3-nobg.png"
@@ -851,43 +693,34 @@ export default function ChatApp() {
                   width={32}
                   height={32}
                   className="w-8 h-8 object-contain"
-                  onError={(e) => {
-                    e.currentTarget.style.display = 'none';
-                  }}
+                  onError={(e) => { e.currentTarget.style.display = 'none'; }}
                 />
-                <h1 className="text-xl font-bold text-gray-900 dark:text-black">MouseAI</h1>
+                <h1 className="text-xl font-bold text-gray-900">MouseAI</h1>
               </div>
               
-              {/* Documentation Button */}
               <Link href="/docs">
                 <Button 
                   variant="ghost" 
                   size="icon" 
-                  className="w-12 h-12 rounded-full hover:bg-muted transition-colors"
+                  className="w-12 h-12 rounded-full hover:bg-gray-100 transition-colors"
                   title="Documentation"
                 >
-                  <FileText className="w-6 h-6 text-gray-900 dark:text-black" />
+                  <FileText className="w-6 h-6 text-gray-900" />
                 </Button>
               </Link>
             </div>
           </div>
 
           <div className="flex min-h-screen items-center relative z-10">
-            {/* Left Side - MouseAI Animation */}
             <div className="flex-1 flex items-center justify-center p-8">
               <MouseAIIntroAnimation />
             </div>
 
-            {/* Right Side - Login Form */}
             <div className="flex-1 flex items-center justify-center p-8">
-              <AuthForm onSuccess={() => {
-                // Success callback after authentication
-                console.log("Authentication successful!")
-              }} />
+              <AuthForm onSuccess={() => console.log("Authentication successful!")} />
             </div>
           </div>
           
-          {/* MouseAI Running Animation at bottom of screen - Above dots, below content */}
           <div className="relative z-20">
             <MouseRunningAnimation />
           </div>
@@ -898,7 +731,6 @@ export default function ChatApp() {
 
   return (
     <>
-      {/* Delete Confirmation Modal */}
       {deletingChatId && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
           <div className="bg-background/95 backdrop-blur-md border rounded-lg p-6 max-w-md mx-4 shadow-lg relative z-60">
@@ -927,7 +759,7 @@ export default function ChatApp() {
                   <strong>"{deletingChatTitle}"</strong>
                 </p>
                 <p className="text-xs text-amber-700 dark:text-amber-300 mt-1">
-                  ⚠️ This action cannot be undone. All messages in this chat will be permanently deleted.
+                  ⚠️ This action cannot be undone. All messages will be permanently deleted.
                 </p>
               </div>
             </div>
@@ -952,7 +784,6 @@ export default function ChatApp() {
       )}
 
       <div className="flex h-screen bg-background">
-      {/* Sidebar */}
       <div className="w-80 border-r bg-card flex flex-col">
         <div className="p-4 border-b">
           <div className="flex justify-between items-center mb-4">
@@ -978,40 +809,25 @@ export default function ChatApp() {
                 }`}
               >
                 {editingChatId === chat.id ? (
-                  // Edit mode
                   <div className="flex items-center gap-2 p-3">
                     <Input
                       value={editingChatTitle}
                       onChange={(e) => setEditingChatTitle(e.target.value)}
                       onKeyDown={(e) => {
-                        if (e.key === 'Enter') {
-                          saveEditedChatTitle()
-                        } else if (e.key === 'Escape') {
-                          cancelEditingChat()
-                        }
+                        if (e.key === 'Enter') saveEditedChatTitle()
+                        else if (e.key === 'Escape') cancelEditingChat()
                       }}
                       className="flex-1 h-8"
                       autoFocus
                     />
-                    <Button
-                      size="sm"
-                      variant="ghost"
-                      onClick={saveEditedChatTitle}
-                      className="h-8 w-8 p-0"
-                    >
+                    <Button size="sm" variant="ghost" onClick={saveEditedChatTitle} className="h-8 w-8 p-0">
                       <CheckCircle className="h-4 w-4" />
                     </Button>
-                    <Button
-                      size="sm"
-                      variant="ghost"
-                      onClick={cancelEditingChat}
-                      className="h-8 w-8 p-0"
-                    >
+                    <Button size="sm" variant="ghost" onClick={cancelEditingChat} className="h-8 w-8 p-0">
                       <X className="h-4 w-4" />
                     </Button>
                   </div>
                 ) : (
-                  // Normal mode
                   <div className="flex items-center">
                     <Button
                       variant="ghost"
@@ -1034,30 +850,11 @@ export default function ChatApp() {
                       </div>
                     </Button>
                     
-                    {/* Action buttons - shown on hover */}
                     <div className="opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-1 pr-2">
-                      <Button
-                        size="sm"
-                        variant="ghost"
-                        onClick={(e) => {
-                          e.stopPropagation()
-                          startEditingChat(chat.id, chat.title)
-                        }}
-                        className="h-8 w-8 p-0"
-                        title="Edit chat name"
-                      >
+                      <Button size="sm" variant="ghost" onClick={(e) => { e.stopPropagation(); startEditingChat(chat.id, chat.title) }} className="h-8 w-8 p-0" title="Edit chat name">
                         <Edit2 className="h-3 w-3" />
                       </Button>
-                      <Button
-                        size="sm"
-                        variant="ghost"
-                        onClick={(e) => {
-                          e.stopPropagation()
-                          showDeleteConfirmation(chat.id, chat.title)
-                        }}
-                        className="h-8 w-8 p-0 text-destructive hover:text-destructive"
-                        title="Delete chat"
-                      >
+                      <Button size="sm" variant="ghost" onClick={(e) => { e.stopPropagation(); showDeleteConfirmation(chat.id, chat.title) }} className="h-8 w-8 p-0 text-destructive hover:text-destructive" title="Delete chat">
                         <Trash2 className="h-3 w-3" />
                       </Button>
                     </div>
@@ -1068,7 +865,6 @@ export default function ChatApp() {
           </div>
         </ScrollArea>
         
-        {/* User info at bottom */}
         <div className="p-4 border-t">
           <div className="flex items-center gap-3">
             <div className="w-8 h-8 rounded-full bg-primary flex items-center justify-center">
@@ -1091,7 +887,6 @@ export default function ChatApp() {
         </div>
       </div>
 
-      {/* Main chat area */}
       <div className="flex-1 flex flex-col">
         {currentChatId ? (
           <>
@@ -1122,10 +917,7 @@ export default function ChatApp() {
                   size="icon" 
                   className="h-10 w-10 text-muted-foreground hover:text-foreground"
                   title="Attach files"
-                  onClick={() => {
-                    // TODO: Implement file attachment functionality
-                    console.log('Attach files clicked');
-                  }}
+                  onClick={() => console.log('Attach files clicked')}
                 >
                   <Paperclip className="h-5 w-5" />
                 </Button>
@@ -1153,7 +945,6 @@ export default function ChatApp() {
         ) : (
           <div className="flex-1 flex items-center justify-center">
             <div className="text-center max-w-4xl mx-auto px-8">
-              {/* Main branding */}
               <div className="mb-12">
                 <div className="w-16 h-16 mx-auto mb-6 rounded-2xl bg-primary flex items-center justify-center">
                   <MessageCircle className="w-8 h-8 text-primary-foreground" />
@@ -1166,7 +957,6 @@ export default function ChatApp() {
                 </p>
               </div>
 
-              {/* Feature cards */}
               <div className="grid md:grid-cols-3 gap-6 mb-12">
                 <Card className="border-2 border-border/50 hover:border-primary/50 transition-colors">
                   <CardContent className="p-6 text-center">
@@ -1199,7 +989,6 @@ export default function ChatApp() {
                 </Card>
               </div>
 
-              {/* Start conversation button */}
               <Button size="lg" onClick={() => createNewChat()} className="px-8 py-3 text-lg">
                 Start New Conversation
               </Button>
