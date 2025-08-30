@@ -185,7 +185,7 @@ export function AuthForm({ onSuccess }: AuthFormProps) {
       <Card className="w-full max-w-md backdrop-blur-lg bg-background/90 border border-border/50 shadow-2xl">
         <CardHeader className="space-y-1">
           <CardTitle className="text-2xl font-bold text-center">
-            {isSignUp ? "Create your account" : "Welcome back"}
+            {isSignUp ? "Create your account" : "Welcome"}
           </CardTitle>
           <CardDescription className="text-center">
             {isSignUp 

@@ -144,10 +144,15 @@ export function useChat() {
         console.error("Error sending message:", error)
 
         // Add appropriate error message to chat
-        const errorMsg =
-          error.message === "WEBHOOK_ERROR"
-            ? MessageService.createFallbackMessage()
-            : MessageService.createErrorMessage(error as Error)
+        let errorMsg;
+        if (typeof error === "object" && error !== null && "message" in error && typeof (error as any).message === "string") {
+          errorMsg =
+            (error as any).message === "WEBHOOK_ERROR"
+              ? MessageService.createFallbackMessage()
+              : MessageService.createErrorMessage(error as Error);
+        } else {
+          errorMsg = MessageService.createErrorMessage(new Error("Unknown error"));
+        }
 
         setMessages((prev) => [...prev, errorMsg])
       } finally {
